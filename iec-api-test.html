@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IEC GIS API — live test harness</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1f2933; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.05rem; margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; }
+  .row { display: flex; gap: 0.5rem; align-items: center; margin: 0.5rem 0; flex-wrap: wrap; }
+  label { font-size: 0.85rem; color: #52606d; }
+  input { padding: 0.35rem 0.5rem; border: 1px solid #cbd2d9; border-radius: 4px; font-family: monospace; }
+  button { padding: 0.4rem 0.9rem; border: 1px solid #1d4ed8; background: #1d4ed8; color: #fff; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #1e40af; }
+  pre { background: #f7f9fb; border: 1px solid #cbd2d9; border-radius: 6px; padding: 0.75rem; overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.8rem; max-height: 320px; }
+  .verdict { font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; margin-bottom: 0.4rem; }
+  .ok { background: #dcfce7; color: #14532d; }
+  .fail { background: #fdecea; color: #7a271a; }
+  .url { font-family: monospace; font-size: 0.8rem; color: #52606d; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<h1>IEC GIS API — live test harness</h1>
+<p>Every request below is a genuine <code>fetch()</code> from your browser, exactly like the ward map would make. Results are not fabricated or cached — this is the real API responding (or failing) live. Open your browser's DevTools console/network tab alongside this page for full request/response detail.</p>
+<p><strong>Note on <code>file://</code>:</strong> if you open this file directly by double-clicking it, some servers reject requests from a <code>null</code> Origin. If every test below fails identically with no HTTP status at all, try serving this folder over local HTTP instead (e.g. <code>python3 -m http.server 8000</code>) and reload.</p>
+
+<h2>1. WardByMunicipality</h2>
+<div class="row">
+  <label>MunicCode <input id="municCode" value="WC024" size="10"></label>
+  <button onclick="runTest('wardByMunic')">Run</button>
+</div>
+<div class="url" id="url-wardByMunic"></div>
+<div id="out-wardByMunic"></div>
+
+<h2>2. Ward (by Ward ID)</h2>
+<div class="row">
+  <label>wardid <input id="wardId" placeholder="value from test 1" size="14"></label>
+  <button onclick="runTest('ward')">Run</button>
+</div>
+<div class="url" id="url-ward"></div>
+<div id="out-ward"></div>
+
+<h2>3. VotingDistrictByWard</h2>
+<div class="row">
+  <label>WardID <input id="vdWardId" placeholder="value from test 1" size="14"></label>
+  <button onclick="runTest('vdByWard')">Run</button>
+</div>
+<div class="url" id="url-vdByWard"></div>
+<div id="out-vdByWard"></div>
+
+<h2>4. VotingDistrict (by VD number)</h2>
+<div class="row">
+  <label>vdnumber <input id="vdNumber" placeholder="value from test 3" size="14"></label>
+  <button onclick="runTest('vd')">Run</button>
+</div>
+<div class="url" id="url-vd"></div>
+<div id="out-vd"></div>
+
+<script>
+const BASE = "https://api.elections.org.za/IECGIS/api/";
+
+const CONFIGS = {
+  wardByMunic: () => `${BASE}WardByMunicipality?MunicCode=${encodeURIComponent(document.getElementById('municCode').value)}&returnGeom=false`,
+  ward:        () => `${BASE}Ward?wardid=${encodeURIComponent(document.getElementById('wardId').value)}&returnGeom=false`,
+  vdByWard:    () => `${BASE}VotingDistrictByWard?WardID=${encodeURIComponent(document.getElementById('vdWardId').value)}&returnGeom=false`,
+  vd:          () => `${BASE}VotingDistrict?vdnumber=${encodeURIComponent(document.getElementById('vdNumber').value)}&returnGeom=false`,
+};
+
+async function runTest(key) {
+  const url = CONFIGS[key]();
+  document.getElementById('url-' + key).textContent = url;
+  const out = document.getElementById('out-' + key);
+  out.innerHTML = '<p>Running…</p>';
+
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (networkErr) {
+    // fetch() throws a generic TypeError for both DNS/network failure
+    // AND for a CORS-blocked response — the browser deliberately hides
+    // which one it was, for security reasons. Both look identical here.
+    out.innerHTML =
+      '<div class="verdict fail">NETWORK ERROR or CORS BLOCK</div>' +
+      '<p>The browser refused to hand back a response. This is either a genuine network failure, ' +
+      'or — much more likely if the URL above works when pasted directly into the address bar — ' +
+      'the server did not send an <code>Access-Control-Allow-Origin</code> header, so the browser blocked it. ' +
+      'Check the Network tab in DevTools: if you see the request complete with a real HTTP status there, ' +
+      'but this page still failed, that confirms CORS.</p>' +
+      '<pre>' + escapeHtml(String(networkErr)) + '</pre>';
+    return;
+  }
+
+  let bodyText;
+  try {
+    bodyText = await response.text();
+  } catch (readErr) {
+    out.innerHTML = '<div class="verdict fail">Response received but body could not be read</div><pre>' + escapeHtml(String(readErr)) + '</pre>';
+    return;
+  }
+
+  let parsed = null;
+  let parseError = null;
+  try {
+    parsed = JSON.parse(bodyText);
+  } catch (e) {
+    parseError = e;
+  }
+
+  const statusLine = response.status + ' ' + response.statusText;
+  let verdictHtml;
+  if (!response.ok) {
+    verdictHtml = '<div class="verdict fail">HTTP ERROR ' + statusLine + '</div>';
+  } else if (parseError) {
+    verdictHtml = '<div class="verdict fail">HTTP OK but body is NOT valid JSON</div>';
+  } else {
+    verdictHtml = '<div class="verdict ok">SUCCESS — HTTP ' + statusLine + ', valid JSON</div>';
+  }
+
+  out.innerHTML =
+    verdictHtml +
+    '<p>Content-Type: <code>' + escapeHtml(response.headers.get('content-type') || '(not exposed)') + '</code></p>' +
+    '<pre>' + escapeHtml(parsed ? JSON.stringify(parsed, null, 2) : bodyText).slice(0, 5000) + '</pre>';
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,659 @@
+/* -----------------------------------------------------------
+   Stellenbosch Ward Map — styling for the single index.html map
+   page (?ward=N for one ward, ?ward=all or no param for all wards).
+   ----------------------------------------------------------- */
+
+:root {
+  --color-text: #1f2933;
+  --color-muted: #52606d;
+  --color-accent: #1d4ed8;
+  --color-border: #cbd2d9;
+  --color-bg: #f7f9fb;
+  --color-error-bg: #fdecea;
+  --color-error-border: #f5b5ac;
+  --color-error-text: #7a271a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+a {
+  color: var(--color-accent);
+}
+
+/* ---------- Ward map page ---------- */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1.5rem;
+  background: #002157;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.page-logo {
+  display: block;
+  height: 40px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.back-link {
+  display: inline-block;
+  font-size: 0.9rem;
+  text-decoration: none;
+  margin-bottom: 0.35rem;
+}
+
+.error-box {
+  margin: 1rem 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error-text);
+  border-radius: 6px;
+}
+
+.error-box .back-link {
+  color: var(--color-error-text);
+  font-weight: 600;
+}
+
+/* Fills all remaining vertical space below the header. Positioned
+   so the map and the loading overlay can be stacked on top of one
+   another without either one changing this element's box size —
+   that would otherwise force Leaflet to resize mid-load. */
+.map-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.status-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-muted);
+  background: rgba(247, 249, 251, 0.85);
+}
+
+/* `.status-overlay` sets its own `display: flex`, which — at equal
+   selector specificity — overrides the browser's built-in
+   `[hidden] { display: none }` rule. Restate it explicitly so
+   setting the `hidden` attribute via JS actually hides the overlay. */
+.status-overlay[hidden] {
+  display: none;
+}
+
+/* Non-blocking notice for the supplementary IEC voting district/
+   station layer. Deliberately understated — unlike .error-box, a
+   missing overlay here is not a broken page. */
+.iec-notice {
+  margin: 0;
+  padding: 0.4rem 1.25rem;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Voting station popup content */
+.station-popup {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.station-popup strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.station-popup .station-type {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  margin-top: 0.2rem;
+}
+
+/* Voting station marker — a small HTML dot rather than a vector
+   circleMarker; see createStationMarker() in ward-map.js for why.
+   Colour matches CONFIG.styles.station.color — keep in sync. */
+.station-marker-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #971a32;
+  border: 3px solid #fff;
+  /* Deliberately no box-shadow — that property is a documented
+     html2canvas weak point (see the PDF export fixes above), and
+     unlike the legend/tools cards this marker isn't hidden during
+     capture, so it would show the same grey-artifact bug on export. */
+}
+
+/* ---------- Default feature labels (ward names on the all-wards
+   map, VD numbers on a single-ward map) ----------
+   Positioned/sized entirely by JS (createLabelController); the
+   outer wrapper is Leaflet's positioned divIcon element, so the
+   centering transform lives on the *inner* element instead — an
+   inline style set by Leaflet on the wrapper would otherwise
+   silently override any transform placed directly on it. */
+.feature-label-wrapper {
+  background: transparent;
+  border: none;
+}
+
+.feature-label-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.8rem;
+  pointer-events: none;
+  /* Solid-colour text with a white halo, no background box. */
+  -webkit-text-stroke: 3px #fff;
+  paint-order: stroke fill;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+}
+
+/* ---------- Mouse-following hover tooltip (ward info on the
+   all-wards map, VD number on a single-ward map) ---------- */
+.hover-label-wrapper {
+  background: transparent;
+  border: none;
+}
+
+.hover-label-inner {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.hover-label-title {
+  font-weight: 700;
+  margin-bottom: 0.1rem;
+}
+
+/* ---------- Legend / key (bottom-right) ----------
+   Three stacked bands: navy header (title + population), maroon
+   subheader (councillor+phone, or municipality name), white body
+   (style-key swatch rows). Colours match CONFIG.styles.ward.color
+   and CONFIG.styles.vd.color in ward-map.js — keep in sync if
+   those change. */
+.legend-control {
+  width: 260px;
+  max-width: 85vw;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  background: #fff;
+  /* Deliberately no overflow:hidden — html2canvas handles that
+     combined with border-radius unreliably (stray square artifacts
+     at the corners, and has been seen to clip off trailing content
+     entirely). Each band below rounds its own matching outer corners
+     instead, so they register exactly against this container's own
+     rounding and nothing needs to be clipped by a parent. */
+}
+
+.legend-header {
+  background: #002157;
+  color: #fff;
+  padding: 0.7rem 0.9rem 0.6rem;
+  border-radius: 10px 10px 0 0;
+  text-align: center;
+}
+
+.legend-header-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.legend-header-subtitle {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 0.1rem;
+}
+
+.legend-subheader {
+  background: #971a32;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 0.5rem 0.9rem;
+}
+
+.legend-subheader-line + .legend-subheader-line {
+  margin-top: 0.1rem;
+}
+
+.legend-body {
+  padding: 0.6rem 0.9rem 0.7rem;
+  background: #fff;
+  border-radius: 0 0 10px 10px;
+  /* Explicitly white (not just inherited from the parent showing
+     through) as a defensive measure against html2canvas rendering
+     quirks in transparent regions — and since this band is now
+     opaque, it needs its own matching bottom-corner radius too, or
+     its square corners would cover the parent's rounded ones. */
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.legend-row:first-child {
+  margin-top: 0;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.legend-swatch-square {
+  border: 2px solid;
+  border-radius: 2px;
+}
+
+.legend-swatch-circle {
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+/* ---------- Data-source credits (bottom-left) ----------
+   Compact box crediting the boundary/voting/demographics data sources,
+   opposite Leaflet's OSM tile attribution. */
+.data-attribution {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #999;
+  border-radius: 3px;
+  padding: 4px 7px;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: #333;
+  max-width: 60vw;
+}
+
+/* ---------- Tools control (top-left) ----------
+   Same three-band language as the legend: navy header, maroon body.
+   Replaces Leaflet's default zoom control and native layers control
+   entirely, so this owns zoom in/out, recenter, base-layer choice,
+   and overlay toggling. Colours match CONFIG.styles.ward.color /
+   vd.color in ward-map.js — keep in sync if those change. */
+.tools-control {
+  width: 260px;
+  max-width: 85vw;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  background: #971a32;
+  /* No overflow:hidden — see the matching note on .legend-control.
+     Only the header needs its own matching corner-radius below: the
+     body has no background of its own, so the container's own
+     bottom corners already show through correctly unclipped. */
+}
+
+.tools-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #002157;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 0.4rem 0.9rem;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* The label sits centred in the remaining space so the title stays
+   visually centred despite the toggle chevron on the left. */
+.tools-header-label,
+.demographics-header-label {
+  flex: 1;
+  text-align: center;
+}
+
+/* CSS-drawn chevron (a rotated square with two borders). Points down
+   when expanded; the .*-collapsed rotation below turns it to point
+   right when the body is hidden. Shared by the Tools box and the
+   demographics panel. */
+.tools-header-toggle,
+.demographics-header-toggle {
+  flex-shrink: 0;
+  width: 0.5em;
+  height: 0.5em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  /* Nudge up so the rotated square reads as centred on the text line. */
+  margin-top: -0.15em;
+}
+
+.tools-collapsed .tools-header-toggle,
+.demographics-collapsed .demographics-header-toggle {
+  transform: rotate(-45deg);
+  margin-top: 0;
+  margin-left: 0.1em;
+}
+
+.tools-body {
+  padding-bottom: 0.6rem;
+}
+
+.tools-collapsed .tools-body {
+  display: none;
+}
+
+.tools-actions {
+  padding: 0.4rem 0.8rem 0.15rem;
+}
+
+.tools-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.22rem 0;
+  margin: 0;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Shown while an async action (currently just PDF generation) is
+   in progress, since it can take a moment. */
+.tools-action-busy {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Shown while the "Zoom to area" tool is armed, so it's clear the
+   tool is engaged and waiting for a drag on the map. */
+.tools-action-active {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+}
+
+/* Applied to the map container itself while the zoom-to-area tool
+   is armed. */
+.zoom-area-active {
+  cursor: crosshair;
+}
+
+/* The rectangle drawn while dragging out a zoom-to-area box.
+   Explicit high z-index is essential here: it has no positioned
+   ancestor establishing a favourable stacking context on its own,
+   and Leaflet's own control corners carry an explicit z-index:1000
+   — a sibling with z-index:auto loses to that regardless of DOM
+   order, which is why the box was invisible without this. */
+.zoom-area-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1200;
+  border: 2px dashed #002157;
+  background: rgba(0, 33, 87, 0.15);
+  pointer-events: none;
+}
+
+.tools-action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.tools-action-icon img {
+  /* These icons are self-contained (navy rounded square + white
+     glyph baked into the SVG itself) — no background or colour
+     filter needed here, just size the whole icon to fill the slot. */
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+.tools-panel {
+  background: #fff;
+  border-radius: 8px;
+  margin: 0.4rem 0.8rem 0;
+  padding: 0.4rem 0.6rem;
+  /* The overlay (layers) list can be long — 23 wards plus stations on
+     the all-wards map. Cap it well below the viewport so the fixed
+     actions/base-layer rows above it stay on screen and only this list
+     scrolls, rather than the whole box running off short screens. */
+  max-height: 38vh;
+  overflow-y: auto;
+}
+
+.tools-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  color: #002157;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tools-panel-row input[type="radio"],
+.tools-panel-row input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: #002157;
+  cursor: pointer;
+}
+
+/* All-wards map only — signals that clicking a ward navigates to
+   its single-ward map. */
+.ward-clickable {
+  cursor: pointer;
+}
+
+/* -----------------------------------------------------------
+   Demographics panel (single-ward, top-right). Mirrors the Tools
+   box: maroon frame showing between white sections, navy header with
+   a collapse chevron, scrollable body of PieGraph sections.
+   ----------------------------------------------------------- */
+.demographics-control {
+  /* Size to content so section legends (some with long labels like the
+     income brackets / dwelling types) aren't squished into awkward line
+     breaks. Grows to fit the widest row, floored for a tidy minimum and
+     capped so it can't run off narrow screens. */
+  width: -moz-fit-content;
+  width: fit-content;
+  min-width: 240px;
+  max-width: 92vw;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  background: #971a32;
+}
+
+.demographics-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #002157;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 0.4rem 0.9rem;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.demographics-body {
+  padding-bottom: 0.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.demographics-collapsed .demographics-body {
+  display: none;
+}
+
+.demographics-section {
+  background: #fff;
+  border-radius: 8px;
+  margin: 0.4rem 0.6rem 0;
+  padding: 0.45rem 0.6rem;
+}
+
+.demographics-section-title {
+  color: #002157;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.demographics-section-body {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.demographics-section-body .piegraph {
+  flex-shrink: 0;
+  display: block;
+}
+
+.demographics-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.demographics-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #002157;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.demographics-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.demographics-legend-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.demographics-legend-pct {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .legend-control {
+    width: 220px;
+  }
+
+  .legend-header-title {
+    font-size: 1.25rem;
+  }
+
+  .tools-control {
+    width: 220px;
+  }
+
+  .tools-header {
+    font-size: 1.05rem;
+  }
+
+  /* Even tighter cap on very short screens so the box never runs off
+     the bottom, whichever section is expanded. */
+  .tools-panel {
+    max-height: 30vh;
+  }
+
+  .demographics-control {
+    min-width: 200px;
+  }
+
+  .demographics-header {
+    font-size: 1.05rem;
+  }
+
+  .demographics-body {
+    max-height: 50vh;
+  }
+}

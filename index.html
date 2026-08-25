@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stellenbosch Ward Map</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <img class="page-logo" src="img/header_stelmuni_logo.svg" alt="Stellenbosch Municipality">
+      <h1 class="page-title">Interactive Wards Map</h1>
+    </header>
+
+    <p id="iec-notice" class="iec-notice" hidden></p>
+
+    <div id="map-area" class="map-area" hidden>
+      <div id="map" class="map"></div>
+      <div id="status" class="status-overlay" role="status" aria-live="polite">
+        <p id="status-message">Loading ward boundary&hellip;</p>
+      </div>
+    </div>
+
+    <div id="error" class="error-box" hidden>
+      <p id="error-message"></p>
+      <a class="back-link" href="index.html">&larr; Back to all wards</a>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+  <!-- Used only by the Tools box's "Download PDF" action: html2canvas
+       rasterises the current map view, jsPDF assembles the A4 file. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
+  <!-- Local SVG pie-chart helper (window.PieGraph), used by the
+       single-ward demographics panel. Must load before ward-map.js. -->
+  <script src="js/piegraph.js"></script>
+  <script src="js/ward-map.js"></script>
+</body>
+</html>

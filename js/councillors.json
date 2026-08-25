@@ -1,0 +1,27 @@
+{
+  "councillors": [
+    {"wardid": 10204001, "name": "Reginald Pheiffer", "phone": "079 597 2765", "party": "DA"},
+    {"wardid": 10204002, "name": "Wilhelmina Petersen", "phone": "068 460 2463", "party": "DA"},
+    {"wardid": 10204003, "name": "Charles Manuel", "phone": "084 449 8787", "party": "DA"},
+    {"wardid": 10204004, "name": "Ralphton Adams", "phone": "073 446 5411", "party": "DA"},
+    {"wardid": 10204005, "name": "Roy Van Rooyen", "phone": "084 334 9893", "party": "DA"},
+    {"wardid": 10204006, "name": "Nateshia Mcombring", "phone": "072 539 5257", "party": "DA"},
+    {"wardid": 10204007, "name": "Annemarie Ferns", "phone": "082 309 7400", "party": "DA"},
+    {"wardid": 10204008, "name": "Tamryn Kumm", "phone": "072 193 9352", "party": "DA"},
+    {"wardid": 10204009, "name": "Isabelle De Taillefer", "phone": "082 418 8847", "party": "DA"},
+    {"wardid": 10204010, "name": "Rozette Du Toit", "phone": "072 218 2267", "party": "DA"},
+    {"wardid": 10204011, "name": "Johannie Serdyn", "phone": "073 442 1919", "party": "DA"},
+    {"wardid": 10204012, "name": "Ayanda Tomose", "phone": "084 885 8022", "party": "ANC"},
+    {"wardid": 10204013, "name": "Mary Nkopane", "phone": "083 945 5811", "party": "ANC"},
+    {"wardid": 10204014, "name": "Maxwell Danana", "phone": "073 550 0843", "party": "ANC"},
+    {"wardid": 10204015, "name": "Elliot Masimini", "phone": "071 893 3899", "party": "ANC"},
+    {"wardid": 10204016, "name": "Elsabe Vermeulen", "phone": null, "party": "PA"},
+    {"wardid": 10204017, "name": "Jeremy Fasser", "phone": "081 419 1233", "party": "DA"},
+    {"wardid": 10204018, "name": "JC Anthony", "phone": "079 338 8451", "party": "DA"},
+    {"wardid": 10204019, "name": "James Williams", "phone": "078 078 6949", "party": "DA"},
+    {"wardid": 10204020, "name": "Joseph Joon", "phone": "076 612 2499", "party": "DA"},
+    {"wardid": 10204021, "name": "Mynard Slabbert", "phone": "063 666 6772", "party": "DA"},
+    {"wardid": 10204022, "name": "Esther Groenewald", "phone": "078 288 9655", "party": "DA"},
+    {"wardid": 10204023, "name": "Lwando Nkamisa", "phone": "067 135 3277", "party": "DA"}
+  ]
+}

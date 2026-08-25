@@ -1,0 +1,962 @@
+{
+  "wards": {
+    "1": {
+      "ward": 1,
+      "wardid": 10204001,
+      "population": 12839,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 63.1 },
+          { "label": "Black African", "percentage": 25.2 },
+          { "label": "White", "percentage": 10.2 },
+          { "label": "Indian/Asian", "percentage": 0.4 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 68.1
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 81.0 },
+          { "label": "Unemployed", "percentage": 19.0 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 31.4 },
+            { "label": "R801 – R1 600", "percentage": 21.2 },
+            { "label": "R3 201 – R6 400", "percentage": 12.3 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 62.4 },
+            { "label": "Matriculated", "percentage": 26.9 },
+            { "label": "Higher education", "percentage": 8.7 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 75.0 },
+          { "label": "Informal dwelling/shack in backyard", "percentage": 16.9 }
+        ]
+      }
+    },
+    "2": {
+      "ward": 2,
+      "wardid": 10204002,
+      "population": 7520,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 39.7 },
+          { "label": "Black African", "percentage": 58.7 },
+          { "label": "White", "percentage": 0.1 },
+          { "label": "Indian/Asian", "percentage": 0.4 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 71
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 72.0 },
+          { "label": "Unemployed", "percentage": 28.0 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 26.9 },
+            { "label": "R801 – R1 600", "percentage": 24.8 },
+            { "label": "R3 201 – R6 400", "percentage": 15.5 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 78.0 },
+            { "label": "Matriculated", "percentage": 19.5 },
+            { "label": "Higher education", "percentage": 2.2 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 19.4 },
+          { "label": "Informal dwelling/shack in backyard", "percentage": 73.5 }
+        ]
+      }
+    },
+    "3": {
+      "ward": 3,
+      "wardid": 10204003,
+      "population": 8951,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 77.3 },
+          { "label": "Black African", "percentage": 12.7 },
+          { "label": "White", "percentage": 9.5 },
+          { "label": "Indian/Asian", "percentage": 0.2 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 70.0
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 91.5 },
+          { "label": "Unemployed", "percentage": 8.5 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 32.3 },
+            { "label": "R801 – R1 600", "percentage": 25.0 },
+            { "label": "R3 201 – R6 400", "percentage": 13.3 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 72.6 },
+            { "label": "Matriculated", "percentage": 21.9 },
+            { "label": "Higher education", "percentage": 5.2 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 77.5 },
+          { "label": "Informal dwelling/shack in backyard", "percentage": 11.4 }
+        ]
+      }
+    },
+    "4": {
+      "ward": 4,
+      "wardid": 10204004,
+      "population": 8230,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 86.8 },
+          { "label": "Black African", "percentage": 8.2 },
+          { "label": "White", "percentage": 4.1 },
+          { "label": "Indian/Asian", "percentage": 0.4 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 71.1
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 90.5 },
+          { "label": "Unemployed", "percentage": 9.5 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 20.0 },
+            { "label": "R801 – R1 600", "percentage": 18.2 },
+            { "label": "R3 201 – R6 400", "percentage": 15.0 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 58.5 },
+            { "label": "Matriculated", "percentage": 25.6 },
+            { "label": "Higher education", "percentage": 15.9 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 80.3 }
+        ]
+      }
+    },
+    "5": {
+      "ward": 5,
+      "wardid": 10204005,
+      "population": 5656,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 91.9 },
+          { "label": "Black African", "percentage": 4.2 },
+          { "label": "White", "percentage": 3.1 },
+          { "label": "Indian/Asian", "percentage": 0.5 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 70.8
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 85.1 },
+          { "label": "Unemployed", "percentage": 14.9 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 20.2 },
+            { "label": "R3 201 – R6 400", "percentage": 14.8 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 58.8 },
+            { "label": "Matriculated", "percentage": 27.8 },
+            { "label": "Higher education", "percentage": 12.6 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 96.5 }
+        ]
+      }
+    },
+    "6": {
+      "ward": 6,
+      "wardid": 10204006,
+      "population": 5856,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 89.7 },
+          { "label": "Black African", "percentage": 6.4 },
+          { "label": "White", "percentage": 3.2 },
+          { "label": "Indian/Asian", "percentage": 0.3 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 69.1
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 93.0 },
+          { "label": "Unemployed", "percentage": 7.0 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 21.9 },
+            { "label": "R801 – R1 600", "percentage": 19.2 },
+            { "label": "R3 201 – R6 400", "percentage": 14.9 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 56.4 },
+            { "label": "Matriculated", "percentage": 27.4 },
+            { "label": "Higher education", "percentage": 14.8 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 87.6 }
+        ]
+      }
+    },
+    "7": {
+      "ward": 7,
+      "wardid": 10204007,
+      "population": 3873,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 5.3 },
+          { "label": "Black African", "percentage": 8.5 },
+          { "label": "White", "percentage": 84.5 },
+          { "label": "Indian/Asian", "percentage": 0.4 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 78.0
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 95.1 },
+          { "label": "Unemployed", "percentage": 4.9 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 15.8 },
+            { "label": "R801 – R1 600", "percentage": 18.4 },
+            { "label": "R3 201 – R6 400", "percentage": 16.3 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 3.9 },
+            { "label": "Matriculated", "percentage": 28.5 },
+            { "label": "Higher education", "percentage": 59.3 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 89.4 }
+        ]
+      }
+    },
+    "8": {
+      "ward": 8,
+      "wardid": 10204008,
+      "population": 5683,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 16.0 },
+          { "label": "Black African", "percentage": 25.2 },
+          { "label": "White", "percentage": 56.7 },
+          { "label": "Indian/Asian", "percentage": 0.9 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 96.0
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 89.6 },
+          { "label": "Unemployed", "percentage": 10.4 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 36.3 },
+            { "label": "R801 – R1 600", "percentage": 13.9 },
+            { "label": "R3 201 – R6 400", "percentage": 14.6 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 5.3 },
+            { "label": "Matriculated", "percentage": 12.3 },
+            { "label": "Higher education", "percentage": 9.0 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 83.8 }
+        ]
+      }
+    },
+    "9": {
+      "ward": 9,
+      "wardid": 10204009,
+      "population": 822,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 16.4 },
+          { "label": "Black African", "percentage": 15.9 },
+          { "label": "White", "percentage": 64.1 },
+          { "label": "Indian/Asian", "percentage": 1.5 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 92.8
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 95.4 },
+          { "label": "Unemployed", "percentage": 4.6 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R3 201 – R6 400", "percentage": 21.4 },
+            { "label": "R6 401 – R12 800", "percentage": 20.0 },
+            { "label": "R12 801 – R25 600", "percentage": 22.1 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 0.0 },
+            { "label": "Matriculated", "percentage": 24.2 },
+            { "label": "Higher education", "percentage": 24.0 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 74.4 },
+          { "label": "Cluster house in complex", "percentage": 7.2 },
+          { "label": "Townhouse/semi detached", "percentage": 14.6 }
+        ]
+      }
+    },
+    "10": {
+      "ward": 10,
+      "wardid": 10204010,
+      "population": 5270,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 33.7 },
+          { "label": "Black African", "percentage": 12.9 },
+          { "label": "White", "percentage": 50.8 },
+          { "label": "Indian/Asian", "percentage": 0.9 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 87.4
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 89.6 },
+          { "label": "Unemployed", "percentage": 10.4 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 17.1 },
+            { "label": "R3 201 – R6 400", "percentage": 16.4 },
+            { "label": "R6 401 – R12 800", "percentage": 18.0 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 17.0 },
+            { "label": "Matriculated", "percentage": 46.1 },
+            { "label": "Higher education", "percentage": 30.1 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 82.0 }
+        ]
+      }
+    },
+    "11": {
+      "ward": 11,
+      "wardid": 10204011,
+      "population": 6545,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 42.1 },
+          { "label": "Black African", "percentage": 11.9 },
+          { "label": "White", "percentage": 43.8 },
+          { "label": "Indian/Asian", "percentage": 0.8 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 76.8
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 92.2 },
+          { "label": "Unemployed", "percentage": 7.8 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 24.2 },
+            { "label": "R801 – R1 600", "percentage": 15.6 },
+            { "label": "R12 801 – R25 600", "percentage": 14.6 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 31.7 },
+            { "label": "Matriculated", "percentage": 24.1 },
+            { "label": "Higher education", "percentage": 29.1 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 88.3 }
+        ]
+      }
+    },
+    "12": {
+      "ward": 12,
+      "wardid": 10204012,
+      "population": 8010,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 2.7 },
+          { "label": "Black African", "percentage": 97.0 },
+          { "label": "White", "percentage": 0.0 },
+          { "label": "Indian/Asian", "percentage": 0.1 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 71.6
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 67.1 },
+          { "label": "Unemployed", "percentage": 32.9 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 34.0 },
+            { "label": "R801 – R1 600", "percentage": 26.8 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 69.1 },
+            { "label": "Matriculated", "percentage": 26.6 },
+            { "label": "Higher education", "percentage": 4.0 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 13.9 },
+          { "label": "Demi-detached house", "percentage": 11.2 },
+          { "label": "Informal dwelling/shack in backyard", "percentage": 8.9 },
+          { "label": "Informal dwelling/shack in informal/squatter settlement", "percentage": 64.3 }
+        ]
+      }
+    },
+    "13": {
+      "ward": 13,
+      "wardid": 10204013,
+      "population": 2483,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 50.1 },
+          { "label": "Black African", "percentage": 43.2 },
+          { "label": "White", "percentage": 6.1 },
+          { "label": "Indian/Asian", "percentage": 0.3 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 72.7
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 85.0 },
+          { "label": "Unemployed", "percentage": 15.0 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R801 – R1 600", "percentage": 13.3 },
+            { "label": "R1 601 – R3 200", "percentage": 31.0 },
+            { "label": "R3 201 – R6 400", "percentage": 18.2 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 55.3 },
+            { "label": "Matriculated", "percentage": 29.7 },
+            { "label": "Higher education", "percentage": 9.5 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 70.7 },
+          { "label": "Informal dwelling/shack in backyard", "percentage": 9.8 },
+          { "label": "Informal dwelling/shack in informal/squatter settlement", "percentage": 9.8 }
+        ]
+      }
+    },
+    "14": {
+      "ward": 14,
+      "wardid": 10204014,
+      "population": 5279,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 4.3 },
+          { "label": "Black African", "percentage": 94.6 },
+          { "label": "White", "percentage": 0.2 },
+          { "label": "Indian/Asian", "percentage": 0.0 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 71.5
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 69.1 },
+          { "label": "Unemployed", "percentage": 30.9 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R801 – R1 600", "percentage": 20.8 },
+            { "label": "R1 601 – R3 200", "percentage": 38.7 },
+            { "label": "R3 201 – R6 400", "percentage": 11.7 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 64.0 },
+            { "label": "Matriculated", "percentage": 38.7 },
+            { "label": "Higher education", "percentage": 11.7 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 27.6 },
+          { "label": "Informal dwelling/shack in backyard", "percentage": 19.9 },
+          { "label": "Informal dwelling/shack in informal/squatter settlement", "percentage": 47.9 }
+        ]
+      }
+    },
+    "15": {
+      "ward": 15,
+      "wardid": 10204015,
+      "population": 10404,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 6.2 },
+          { "label": "Black African", "percentage": 92.8 },
+          { "label": "White", "percentage": 0.2 },
+          { "label": "Indian/Asian", "percentage": 0.1 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 71.3
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 69.3 },
+          { "label": "Unemployed", "percentage": 30.7 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R801 – R1 600", "percentage": 19.2 },
+            { "label": "R1 601 – R3 200", "percentage": 31.0 },
+            { "label": "R3 201 – R6 400", "percentage": 10.2 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 69.3 },
+            { "label": "Matriculated", "percentage": 27.2 },
+            { "label": "Higher education", "percentage": 3.3 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 14.1 },
+          { "label": "Informal dwelling/shack in backyard", "percentage": 59.9 }
+        ]
+      }
+    },
+    "16": {
+      "ward": 16,
+      "wardid": 10204016,
+      "population": 8626,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 86.6 },
+          { "label": "Black African", "percentage": 5.7 },
+          { "label": "White", "percentage": 6.6 },
+          { "label": "Indian/Asian", "percentage": 0.4 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 70.8
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 80.0 },
+          { "label": "Unemployed", "percentage": 20.0 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R801 – R1 600", "percentage": 16.6 },
+            { "label": "R1 601 – R3 200", "percentage": 30.4 },
+            { "label": "R3 201 – R6 400", "percentage": 18.4 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 68.0 },
+            { "label": "Matriculated", "percentage": 20.6 },
+            { "label": "Higher education", "percentage": 3.2 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 65.6 },
+          { "label": "Semi-detached House", "percentage": 22.4 }
+        ]
+      }
+    },
+    "17": {
+      "ward": 17,
+      "wardid": 10204017,
+      "population": 7727,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 64.8 },
+          { "label": "Black African", "percentage": 4.9 },
+          { "label": "White", "percentage": 29.2 },
+          { "label": "Indian/Asian", "percentage": 0.2 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 73.0
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 92.0 },
+          { "label": "Unemployed", "percentage": 8.0 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R3 201 – R6 400", "percentage": 16.5 },
+            { "label": "R6 401 – R12 800", "percentage": 19.6 },
+            { "label": "R12 801 – R25 600", "percentage": 20.0 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 37.0 },
+            { "label": "Matriculated", "percentage": 25.4 },
+            { "label": "Higher education", "percentage": 33.5 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 80.9 }
+        ]
+      }
+    },
+    "18": {
+      "ward": 18,
+      "wardid": 10204018,
+      "population": 8763,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 65.2 },
+          { "label": "Black African", "percentage": 30.7 },
+          { "label": "White", "percentage": 2.4 },
+          { "label": "Indian/Asian", "percentage": 0.6 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 67.9
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 83.1 },
+          { "label": "Unemployed", "percentage": 16.9 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 16.0 },
+            { "label": "R3 201 – R6 400", "percentage": 27.6 },
+            { "label": "R6 401 – R12 800", "percentage": 11.0 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 77.7 },
+            { "label": "Matriculated", "percentage": 18.7 },
+            { "label": "Higher education", "percentage": 3.3 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 70.4 },
+          { "label": "Informal dwelling/shack in backyard", "percentage": 12.2 },
+          { "label": "Informal dwelling/shack in informal/squatter settlement", "percentage": 14.2 }
+        ]
+      }
+    },
+    "19": {
+      "ward": 19,
+      "wardid": 10204019,
+      "population": 10494,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 71.5 },
+          { "label": "Black African", "percentage": 15.2 },
+          { "label": "White", "percentage": 12.0 },
+          { "label": "Indian/Asian", "percentage": 0.4 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 70.0
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 92.7 },
+          { "label": "Unemployed", "percentage": 7.3 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 29.2 },
+            { "label": "R801 – R1 600", "percentage": 20.3 },
+            { "label": "R3 201 – R6 400", "percentage": 10.0 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 62.9 },
+            { "label": "Matriculated", "percentage": 16.3 },
+            { "label": "Higher education", "percentage": 8.8 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 89.3 }
+        ]
+      }
+    },
+    "20": {
+      "ward": 20,
+      "wardid": 10204020,
+      "population": 9628,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 72.1 },
+          { "label": "Black African", "percentage": 8.8 },
+          { "label": "White", "percentage": 18.2 },
+          { "label": "Indian/Asian", "percentage": 0.2 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 69.4
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 94.4 },
+          { "label": "Unemployed", "percentage": 5.6 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R801 – R1 600", "percentage": 24.8 },
+            { "label": "R1 601 – R3 200", "percentage": 28.9 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 65.2 },
+            { "label": "Matriculated", "percentage": 16.6 },
+            { "label": "Higher education", "percentage": 14.2 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 82.9 },
+          { "label": "Semi-detached house", "percentage": 9.2 }
+        ]
+      }
+    },
+    "21": {
+      "ward": 21,
+      "wardid": 10204021,
+      "population": 8651,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 54.8 },
+          { "label": "Black African", "percentage": 4.7 },
+          { "label": "White", "percentage": 39.6 },
+          { "label": "Indian/Asian", "percentage": 0.3 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": 66.6
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 90.4 },
+          { "label": "Unemployed", "percentage": 9.6 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R1 601 – R3 200", "percentage": 19.0 },
+            { "label": "R3 201 – R6 400", "percentage": 12.4 },
+            { "label": "R6 401 – R12 800", "percentage": 12.0 },
+            { "label": "R12 801 – R25 600", "percentage": 14.1 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 39.8 },
+            { "label": "Matriculated", "percentage": 18.5 },
+            { "label": "Higher education", "percentage": 40.6 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 85.25 }
+        ]
+      }
+    },
+    "22": {
+      "ward": 22,
+      "wardid": 10204022,
+      "population": 4873,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": 11.3 },
+          { "label": "Black African", "percentage": 10.1 },
+          { "label": "White", "percentage": 75.6 },
+          { "label": "Indian/Asian", "percentage": 1.0 }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": null
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": 94.6 },
+          { "label": "Unemployed", "percentage": 5.4 }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R6 401 – R12 800", "percentage": 12.2 },
+            { "label": "R12 801 – R25 600", "percentage": 19.6 },
+            { "label": "R25 601 – R51 200", "percentage": 16.8 }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": 12.8 },
+            { "label": "Matriculated", "percentage": 17.0 },
+            { "label": "Higher education", "percentage": 60.4 }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": 87.9 }
+        ]
+      }
+    },
+    "23": {
+      "ward": 23,
+      "wardid": 10204023,
+      "population": 0,
+      "demographics": {
+        "population_groups": [
+          { "label": "Coloured", "percentage": null },
+          { "label": "Black African", "percentage": null },
+          { "label": "White", "percentage": null },
+          { "label": "Indian/Asian", "percentage": null }
+        ],
+        "age_demographics": {
+          "age_15_64": {
+            "percentage": null
+          }
+        },
+        "employment": [
+          { "label": "Employed", "percentage": null },
+          { "label": "Unemployed", "percentage": null }
+        ],
+        "monthly_income": {
+          "basis": "employed",
+          "categories": [
+            { "label": "R6 401 – R12 800", "percentage": null },
+            { "label": "R12 801 – R25 600", "percentage": null },
+            { "label": "R25 601 – R51 200", "percentage": null }
+          ]
+        },
+        "education": {
+          "basis": "age_20_plus",
+          "categories": [
+            { "label": "No matric", "percentage": null },
+            { "label": "Matriculated", "percentage": null },
+            { "label": "Higher education", "percentage": null }
+          ]
+        },
+        "dwelling": [
+          { "label": "House or brick/concrete structure", "percentage": null }
+        ]
+      }
+    }
+  }
+}
