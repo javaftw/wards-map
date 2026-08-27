@@ -2441,22 +2441,380 @@
      8. HOVER BEHAVIOUR
      ============================================================= */
 
+  /* =============================================================
+     5c. WARD INSIGHTS (all-wards choropleth)
+     Top-right control that shades every ward from min to max for a
+     chosen metric, with a switchable colour scheme and a gradient
+     legend. Only the fill colour/opacity changes, so it composes with
+     the outline controller and per-ward toggles. Wards with no data
+     (e.g. ward 23) are shaded neutral grey and excluded from the range.
+     ============================================================= */
+
+  const INSIGHT_FILL_OPACITY = 0.75;
+  const INSIGHT_HOVER_OPACITY = 0.92;
+  const INSIGHT_NODATA_COLOR = "#c9ccd1";
+
+  // Sequential ramps (light -> dark end). Viridis is perceptually
+  // uniform and colour-blind friendly; Blues matches the app's navy.
+  const INSIGHT_RAMPS = {
+    viridis: ["#440154", "#414487", "#2a788e", "#22a884", "#7ad151", "#fde725"],
+    blues: ["#eff3ff", "#c6dbef", "#6baed6", "#2171b5", "#08306b"],
+  };
+  const INSIGHT_SCHEME_LABELS = { viridis: "Viridis", blues: "Blues" };
+
+  // Sums the percentages whose label matches. Returns 0 (not null) when
+  // the ward has data in this list but nothing matches — e.g. a ward
+  // with only formal housing genuinely has ~0% informal dwellings, which
+  // is the low end of the ramp, not "no data". Only a list with no
+  // numeric data at all (ward 23) yields null.
+  function insightPctFromList(list, matchFn) {
+    if (!Array.isArray(list)) {
+      return null;
+    }
+    let sum = 0;
+    let matched = false;
+    let hasData = false;
+    list.forEach(function (item) {
+      if (item && typeof item.percentage === "number") {
+        hasData = true;
+        if (matchFn(String(item.label))) {
+          sum += item.percentage;
+          matched = true;
+        }
+      }
+    });
+    if (matched) {
+      return sum;
+    }
+    return hasData ? 0 : null;
+  }
+
+  // Each metric pulls one number per ward from { demo, area, population }.
+  // `scale` is linear except where the spread is extreme (density).
+  const INSIGHT_METRICS = [
+    {
+      key: "density",
+      label: "Population density",
+      scale: "log",
+      value: function (w) {
+        return w.area > 0 && w.population > 0 ? w.population / w.area : null;
+      },
+      format: function (v) {
+        return Math.round(v).toLocaleString() + " /km²";
+      },
+    },
+    {
+      key: "population",
+      label: "Total population",
+      scale: "linear",
+      value: function (w) {
+        return typeof w.population === "number" && w.population > 0 ? w.population : null;
+      },
+      format: function (v) {
+        return Math.round(v).toLocaleString();
+      },
+    },
+    {
+      key: "unemployment",
+      label: "Unemployment",
+      scale: "linear",
+      value: function (w) {
+        return insightPctFromList(w.demo && w.demo.employment, function (l) {
+          return /unemploy/i.test(l);
+        });
+      },
+      format: insightFormatPct,
+    },
+    {
+      key: "higher_ed",
+      label: "Higher education",
+      scale: "linear",
+      value: function (w) {
+        return insightPctFromList(
+          w.demo && w.demo.education && w.demo.education.categories,
+          function (l) { return /higher/i.test(l); }
+        );
+      },
+      format: insightFormatPct,
+    },
+    {
+      key: "informal",
+      label: "Informal dwellings",
+      scale: "linear",
+      value: function (w) {
+        return insightPctFromList(w.demo && w.demo.dwelling, function (l) {
+          return /informal/i.test(l);
+        });
+      },
+      format: insightFormatPct,
+    },
+    {
+      key: "diversity",
+      label: "Population diversity",
+      scale: "linear",
+      // Simpson diversity index (1 - Σpᵢ²): 0 = one group dominates,
+      // ~0.75 = an even four-group mix.
+      value: function (w) {
+        const groups = w.demo && w.demo.population_groups;
+        if (!Array.isArray(groups)) {
+          return null;
+        }
+        let sumSq = 0;
+        let any = false;
+        groups.forEach(function (g) {
+          if (g && typeof g.percentage === "number") {
+            const p = g.percentage / 100;
+            sumSq += p * p;
+            any = true;
+          }
+        });
+        return any ? 1 - sumSq : null;
+      },
+      format: function (v) {
+        return (Math.round(v * 100) / 100).toString();
+      },
+    },
+  ];
+
+  function insightFormatPct(v) {
+    return Math.round(v * 10) / 10 + "%";
+  }
+
+  function insightLerpColor(a, b, t) {
+    function ch(hex, i) {
+      return parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+    }
+    const r = Math.round(ch(a, 0) + (ch(b, 0) - ch(a, 0)) * t);
+    const g = Math.round(ch(a, 1) + (ch(b, 1) - ch(a, 1)) * t);
+    const bl = Math.round(ch(a, 2) + (ch(b, 2) - ch(a, 2)) * t);
+    return "rgb(" + r + "," + g + "," + bl + ")";
+  }
+
+  function insightRampColor(stops, t) {
+    const c = Math.max(0, Math.min(1, t));
+    const pos = c * (stops.length - 1);
+    const i = Math.floor(pos);
+    if (i >= stops.length - 1) {
+      return stops[stops.length - 1];
+    }
+    return insightLerpColor(stops[i], stops[i + 1], pos - i);
+  }
+
+  function insightNormalize(v, min, max, scale) {
+    if (min === max) {
+      return 0.5;
+    }
+    if (scale === "log" && min > 0 && v > 0) {
+      return (Math.log(v) - Math.log(min)) / (Math.log(max) - Math.log(min));
+    }
+    return (v - min) / (max - min);
+  }
+
+  // `wards`: [{ wardNumber, layer, demo, area, population }].
+  // `insightState` is shared with the hover so the tooltip can show the
+  // active metric's value and restore the right fill opacity.
+  function createWardInsightsControl(wards, insightState) {
+    const metricsByKey = {};
+    INSIGHT_METRICS.forEach(function (m) {
+      metricsByKey[m.key] = m;
+    });
+    let scheme = "viridis";
+    let activeKey = null;
+    let legendWrap, gradientBar, minLabel, maxLabel, legendTitle;
+
+    function restoreDefault() {
+      wards.forEach(function (w) {
+        w.layer.setStyle({
+          fillColor: CONFIG.styles.ward.color,
+          fillOpacity: CONFIG.styles.fillOpacity,
+        });
+      });
+    }
+
+    function updateLegend(metric, min, max, stops) {
+      if (!legendWrap) {
+        return;
+      }
+      legendWrap.hidden = false;
+      legendTitle.textContent = metric.label;
+      gradientBar.style.background = "linear-gradient(to right, " + stops.join(", ") + ")";
+      minLabel.textContent = metric.format(min);
+      maxLabel.textContent = metric.format(max);
+    }
+
+    function apply() {
+      if (!activeKey) {
+        restoreDefault();
+        insightState.activeKey = null;
+        insightState.metric = null;
+        insightState.valueByWard = {};
+        if (legendWrap) {
+          legendWrap.hidden = true;
+        }
+        return;
+      }
+      const metric = metricsByKey[activeKey];
+      const valueByWard = {};
+      const values = [];
+      wards.forEach(function (w) {
+        const v = metric.value(w);
+        const num = typeof v === "number" && isFinite(v) ? v : null;
+        valueByWard[w.wardNumber] = num;
+        if (num != null) {
+          values.push(num);
+        }
+      });
+      const min = values.length ? Math.min.apply(null, values) : 0;
+      const max = values.length ? Math.max.apply(null, values) : 0;
+      const stops = INSIGHT_RAMPS[scheme];
+      wards.forEach(function (w) {
+        const v = valueByWard[w.wardNumber];
+        const color = v == null
+          ? INSIGHT_NODATA_COLOR
+          : insightRampColor(stops, insightNormalize(v, min, max, metric.scale));
+        w.layer.setStyle({ fillColor: color, fillOpacity: INSIGHT_FILL_OPACITY });
+      });
+      insightState.activeKey = activeKey;
+      insightState.metric = metric;
+      insightState.valueByWard = valueByWard;
+      updateLegend(metric, min, max, stops);
+    }
+
+    const control = L.control({ position: "topright" });
+
+    control.onAdd = function () {
+      const containerEl = L.DomUtil.create("div", "insights-control insights-collapsed");
+      L.DomEvent.disableClickPropagation(containerEl);
+      L.DomEvent.disableScrollPropagation(containerEl);
+      let collapsed = true;
+
+      const header = document.createElement("div");
+      header.className = "insights-header";
+      const toggleIcon = document.createElement("span");
+      toggleIcon.className = "insights-header-toggle";
+      toggleIcon.setAttribute("aria-hidden", "true");
+      header.appendChild(toggleIcon);
+      const headerLabel = document.createElement("span");
+      headerLabel.className = "insights-header-label";
+      headerLabel.textContent = "Ward Insights";
+      header.appendChild(headerLabel);
+      header.addEventListener("click", function () {
+        collapsed = !collapsed;
+        containerEl.classList.toggle("insights-collapsed", collapsed);
+      });
+      containerEl.appendChild(header);
+
+      const body = document.createElement("div");
+      body.className = "insights-body";
+
+      const schemeHead = document.createElement("div");
+      schemeHead.className = "insights-subhead";
+      schemeHead.textContent = "Colour scheme";
+      body.appendChild(schemeHead);
+
+      const schemeRow = document.createElement("div");
+      schemeRow.className = "insights-schemes";
+      Object.keys(INSIGHT_RAMPS).forEach(function (key) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "insights-scheme" + (key === scheme ? " insights-scheme-active" : "");
+        btn.style.background = "linear-gradient(to right, " + INSIGHT_RAMPS[key].join(", ") + ")";
+        btn.title = INSIGHT_SCHEME_LABELS[key];
+        btn.addEventListener("click", function () {
+          scheme = key;
+          schemeRow.querySelectorAll(".insights-scheme").forEach(function (b) {
+            b.classList.remove("insights-scheme-active");
+          });
+          btn.classList.add("insights-scheme-active");
+          apply();
+        });
+        schemeRow.appendChild(btn);
+      });
+      body.appendChild(schemeRow);
+
+      const metricList = document.createElement("div");
+      metricList.className = "insights-metrics";
+      function addRadio(key, label) {
+        const row = document.createElement("label");
+        row.className = "insights-metric-row";
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "insight-metric";
+        input.checked = key === (activeKey || "");
+        input.addEventListener("change", function () {
+          activeKey = key || null;
+          apply();
+        });
+        const span = document.createElement("span");
+        span.textContent = label;
+        row.appendChild(input);
+        row.appendChild(span);
+        metricList.appendChild(row);
+      }
+      addRadio("", "None (default)");
+      INSIGHT_METRICS.forEach(function (m) {
+        addRadio(m.key, m.label);
+      });
+      body.appendChild(metricList);
+
+      legendWrap = document.createElement("div");
+      legendWrap.className = "insights-legend";
+      legendWrap.hidden = true;
+      legendTitle = document.createElement("div");
+      legendTitle.className = "insights-legend-title";
+      legendWrap.appendChild(legendTitle);
+      gradientBar = document.createElement("div");
+      gradientBar.className = "insights-gradient";
+      legendWrap.appendChild(gradientBar);
+      const scaleRow = document.createElement("div");
+      scaleRow.className = "insights-legend-scale";
+      minLabel = document.createElement("span");
+      maxLabel = document.createElement("span");
+      scaleRow.appendChild(minLabel);
+      scaleRow.appendChild(maxLabel);
+      legendWrap.appendChild(scaleRow);
+      body.appendChild(legendWrap);
+
+      containerEl.appendChild(body);
+      return containerEl;
+    };
+
+    return control;
+  }
+
   // All-wards map: hovering a ward reduces its transparency, hides
-  // every default ward label, and shows a mouse-following tooltip
-  // with the ward's number, councillor, and population.
-  function attachWardHoverBehavior(layer, wardNumber, councillor, population, hoverLabel, labelController, labelIndex) {
+  // every default ward label, and shows a mouse-following tooltip with
+  // the ward's number, councillor, population, and — when a Ward
+  // Insights metric is active — that metric's value. `insightState`
+  // also governs the base/hover fill opacity so the choropleth shading
+  // survives hover-out.
+  function attachWardHoverBehavior(layer, wardNumber, councillor, population, hoverLabel, labelController, labelIndex, insightState) {
+    function baseOpacity() {
+      return insightState && insightState.activeKey ? INSIGHT_FILL_OPACITY : CONFIG.styles.fillOpacity;
+    }
+    function hoverOpacity() {
+      return insightState && insightState.activeKey ? INSIGHT_HOVER_OPACITY : CONFIG.styles.hoverFillOpacity;
+    }
     layer.on("mouseover", function () {
-      layer.setStyle({ fillOpacity: CONFIG.styles.hoverFillOpacity });
+      layer.setStyle({ fillOpacity: hoverOpacity() });
       labelController.hideLabel(labelIndex);
       showHoverLabelWith(hoverLabel, function (el) {
         buildWardHoverContent(el, wardNumber, councillor, population);
+        if (insightState && insightState.activeKey && insightState.metric) {
+          const v = insightState.valueByWard[wardNumber];
+          const line = document.createElement("div");
+          line.className = "hover-label-insight";
+          line.textContent =
+            insightState.metric.label + ": " + (v == null ? "no data" : insightState.metric.format(v));
+          el.appendChild(line);
+        }
       });
     });
     layer.on("mousemove", function (e) {
       hoverLabel.setLatLng(e.latlng);
     });
     layer.on("mouseout", function () {
-      layer.setStyle({ fillOpacity: CONFIG.styles.fillOpacity });
+      layer.setStyle({ fillOpacity: baseOpacity() });
       hideHoverLabel(hoverLabel);
       labelController.showLabels();
     });
@@ -2808,11 +3166,29 @@
         };
       });
 
+      // Ward Insights choropleth (top-right). Shared state lets the
+      // hover tooltip show the active metric and keep the shading.
+      const insightState = { activeKey: null, metric: null, valueByWard: {} };
+      const insightWards = wardEntries.map(function (entry) {
+        const de = refData.demographicsByWardNo[entry.wardNo];
+        const pop = refData.populationByWardNo[entry.wardNo];
+        return {
+          wardNumber: entry.wardNumber,
+          layer: entry.layer,
+          demo: de && de.demographics ? de.demographics : null,
+          area: refData.areaByWardNo[entry.wardNo],
+          population: de && typeof de.population === "number"
+            ? de.population
+            : pop && typeof pop.total === "number" ? pop.total : null,
+        };
+      });
+      createWardInsightsControl(insightWards, insightState).addTo(map);
+
       const wardLabelController = createLabelController(map, wardEntries);
       wardEntries.forEach(function (entry, index) {
         const councillor = refData.councillorsByWardNo[entry.wardNo] || null;
         const population = refData.populationByWardNo[entry.wardNo] || null;
-        attachWardHoverBehavior(entry.layer, entry.wardNumber, councillor, population, hoverLabel, wardLabelController, index);
+        attachWardHoverBehavior(entry.layer, entry.wardNumber, councillor, population, hoverLabel, wardLabelController, index, insightState);
         attachWardClickNavigation(entry.layer, entry.wardNumber);
       });
 

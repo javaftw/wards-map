@@ -326,6 +326,125 @@ a {
   max-width: 60vw;
 }
 
+/* ---------- Ward Insights control (all-wards, top-right) ----------
+   Choropleth chooser: colour scheme swatches, metric radios, gradient
+   legend. Same collapsible navy-header / maroon-frame language as the
+   Tools box and demographics panel. */
+.insights-control {
+  width: 240px;
+  max-width: 85vw;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  background: #971a32;
+}
+
+.insights-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #002157;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 0.4rem 0.9rem;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.insights-body {
+  padding-bottom: 0.5rem;
+}
+
+.insights-collapsed .insights-body {
+  display: none;
+}
+
+.insights-subhead {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.8rem 0.25rem;
+}
+
+.insights-schemes {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0 0.8rem;
+}
+
+.insights-scheme {
+  flex: 1;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.insights-scheme-active {
+  border-color: #fff;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+.insights-metrics {
+  background: #fff;
+  border-radius: 8px;
+  margin: 0.5rem 0.6rem 0;
+  padding: 0.35rem 0.6rem;
+}
+
+.insights-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.22rem 0;
+  color: #002157;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.insights-metric-row input[type="radio"] {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: #002157;
+  cursor: pointer;
+}
+
+.insights-legend {
+  background: #fff;
+  border-radius: 8px;
+  margin: 0.4rem 0.6rem 0;
+  padding: 0.45rem 0.6rem;
+  color: #002157;
+}
+
+.insights-legend-title {
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.insights-gradient {
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.insights-legend-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
 /* ---------- Tools control (top-left) ----------
    Same three-band language as the legend: navy header, maroon body.
    Replaces Leaflet's default zoom control and native layers control
@@ -363,7 +482,8 @@ a {
 /* The label sits centred in the remaining space so the title stays
    visually centred despite the toggle chevron on the left. */
 .tools-header-label,
-.demographics-header-label {
+.demographics-header-label,
+.insights-header-label {
   flex: 1;
   text-align: center;
 }
@@ -373,7 +493,8 @@ a {
    right when the body is hidden. Shared by the Tools box and the
    demographics panel. */
 .tools-header-toggle,
-.demographics-header-toggle {
+.demographics-header-toggle,
+.insights-header-toggle {
   flex-shrink: 0;
   width: 0.5em;
   height: 0.5em;
@@ -386,7 +507,8 @@ a {
 }
 
 .tools-collapsed .tools-header-toggle,
-.demographics-collapsed .demographics-header-toggle {
+.demographics-collapsed .demographics-header-toggle,
+.insights-collapsed .insights-header-toggle {
   transform: rotate(-45deg);
   margin-top: 0;
   margin-left: 0.1em;
