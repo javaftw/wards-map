@@ -493,6 +493,24 @@ a {
   margin-top: 0.2rem;
 }
 
+/* Quantile mode: one swatch per class with its value range. */
+.insights-class-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.05rem 0;
+}
+
+.insights-class-swatch {
+  width: 14px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
 /* ---------- Tools control (top-left) ----------
    Same three-band language as the legend: navy header, maroon body.
    Replaces Leaflet's default zoom control and native layers control

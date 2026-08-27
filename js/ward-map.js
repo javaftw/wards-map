@@ -2685,14 +2685,20 @@
     for (let i = 1; i < k; i++) {
       breaks.push(sorted[Math.min(Math.floor((i * n) / k), n - 1)]);
     }
-    return function (v) {
+    function classOf(v) {
       let cls = 0;
       for (let i = 0; i < breaks.length; i++) {
         if (v >= breaks[i]) {
           cls = i + 1;
         }
       }
-      return k > 1 ? cls / (k - 1) : 0.5;
+      return cls;
+    }
+    return {
+      breaks: breaks,
+      tOf: function (v) {
+        return k > 1 ? classOf(v) / (k - 1) : 0.5;
+      },
     };
   }
 
@@ -2707,7 +2713,7 @@
     let scheme = "viridis";
     let classification = "continuous"; // or "quantile"
     let activeKey = null;
-    let legendWrap, gradientBar, minLabel, maxLabel, legendTitle;
+    let legendWrap, legendTitle, legendBody;
 
     function restoreDefault() {
       wards.forEach(function (w) {
@@ -2718,15 +2724,51 @@
       });
     }
 
-    function updateLegend(metric, min, max, stops) {
+    // Continuous mode -> a smooth gradient bar with min/max labels.
+    // Quantile mode -> one swatch per class with its value range, since
+    // the shading is discrete and the class breaks are the useful info.
+    function updateLegend(metric, min, max, stops, quantile) {
       if (!legendWrap) {
         return;
       }
       legendWrap.hidden = false;
       legendTitle.textContent = metric.label;
-      gradientBar.style.background = "linear-gradient(to right, " + stops.join(", ") + ")";
-      minLabel.textContent = metric.format(min);
-      maxLabel.textContent = metric.format(max);
+      while (legendBody.firstChild) {
+        legendBody.removeChild(legendBody.firstChild);
+      }
+
+      if (quantile) {
+        const k = INSIGHT_QUANTILE_CLASSES;
+        const bounds = [min].concat(quantile.breaks, [max]); // k+1 edges
+        for (let i = k - 1; i >= 0; i--) {
+          // High class at the top.
+          const row = document.createElement("div");
+          row.className = "insights-class-row";
+          const sw = document.createElement("span");
+          sw.className = "insights-class-swatch";
+          sw.style.background = insightRampColor(stops, k > 1 ? i / (k - 1) : 0.5);
+          const txt = document.createElement("span");
+          txt.textContent = metric.format(bounds[i]) + " – " + metric.format(bounds[i + 1]);
+          row.appendChild(sw);
+          row.appendChild(txt);
+          legendBody.appendChild(row);
+        }
+        return;
+      }
+
+      const grad = document.createElement("div");
+      grad.className = "insights-gradient";
+      grad.style.background = "linear-gradient(to right, " + stops.join(", ") + ")";
+      legendBody.appendChild(grad);
+      const scale = document.createElement("div");
+      scale.className = "insights-legend-scale";
+      const mn = document.createElement("span");
+      mn.textContent = metric.format(min);
+      const mx = document.createElement("span");
+      mx.textContent = metric.format(max);
+      scale.appendChild(mn);
+      scale.appendChild(mx);
+      legendBody.appendChild(scale);
     }
 
     // Voting-station icons clutter a shaded map, so hide them (via a
@@ -2773,7 +2815,7 @@
         if (v == null) {
           color = INSIGHT_NODATA_COLOR;
         } else {
-          const t = quantile ? quantile(v) : insightNormalize(v, min, max, metric.scale);
+          const t = quantile ? quantile.tOf(v) : insightNormalize(v, min, max, metric.scale);
           color = insightRampColor(stops, t);
         }
         w.layer.setStyle({ fillColor: color, fillOpacity: INSIGHT_FILL_OPACITY });
@@ -2782,7 +2824,7 @@
       insightState.activeKey = activeKey;
       insightState.metric = metric;
       insightState.valueByWard = valueByWard;
-      updateLegend(metric, min, max, stops);
+      updateLegend(metric, min, max, stops, quantile);
     }
 
     const control = L.control({ position: "topright" });
@@ -2905,16 +2947,10 @@
       legendTitle = document.createElement("div");
       legendTitle.className = "insights-legend-title";
       legendWrap.appendChild(legendTitle);
-      gradientBar = document.createElement("div");
-      gradientBar.className = "insights-gradient";
-      legendWrap.appendChild(gradientBar);
-      const scaleRow = document.createElement("div");
-      scaleRow.className = "insights-legend-scale";
-      minLabel = document.createElement("span");
-      maxLabel = document.createElement("span");
-      scaleRow.appendChild(minLabel);
-      scaleRow.appendChild(maxLabel);
-      legendWrap.appendChild(scaleRow);
+      // Rebuilt per render as either a gradient or class swatches.
+      legendBody = document.createElement("div");
+      legendBody.className = "insights-legend-body";
+      legendWrap.appendChild(legendBody);
       body.appendChild(legendWrap);
 
       containerEl.appendChild(body);
