@@ -2491,96 +2491,156 @@
     return hasData ? 0 : null;
   }
 
-  // Each metric pulls one number per ward from { demo, area, population }.
-  // `scale` is linear except where the spread is extreme (density).
-  const INSIGHT_METRICS = [
-    {
-      key: "density",
-      label: "Population density",
-      scale: "log",
-      value: function (w) {
-        return w.area > 0 && w.population > 0 ? w.population / w.area : null;
-      },
-      format: function (v) {
-        return Math.round(v).toLocaleString() + " /km²";
-      },
-    },
-    {
-      key: "population",
-      label: "Total population",
-      scale: "linear",
-      value: function (w) {
-        return typeof w.population === "number" && w.population > 0 ? w.population : null;
-      },
-      format: function (v) {
-        return Math.round(v).toLocaleString();
-      },
-    },
-    {
-      key: "unemployment",
-      label: "Unemployment",
-      scale: "linear",
-      value: function (w) {
-        return insightPctFromList(w.demo && w.demo.employment, function (l) {
-          return /unemploy/i.test(l);
-        });
-      },
-      format: insightFormatPct,
-    },
-    {
-      key: "higher_ed",
-      label: "Higher education",
-      scale: "linear",
-      value: function (w) {
-        return insightPctFromList(
-          w.demo && w.demo.education && w.demo.education.categories,
-          function (l) { return /higher/i.test(l); }
-        );
-      },
-      format: insightFormatPct,
-    },
-    {
-      key: "informal",
-      label: "Informal dwellings",
-      scale: "linear",
-      value: function (w) {
-        return insightPctFromList(w.demo && w.demo.dwelling, function (l) {
-          return /informal/i.test(l);
-        });
-      },
-      format: insightFormatPct,
-    },
-    {
-      key: "diversity",
-      label: "Population diversity",
-      scale: "linear",
-      // Simpson diversity index (1 - Σpᵢ²): 0 = one group dominates,
-      // ~0.75 = an even four-group mix.
-      value: function (w) {
-        const groups = w.demo && w.demo.population_groups;
-        if (!Array.isArray(groups)) {
-          return null;
-        }
-        let sumSq = 0;
-        let any = false;
-        groups.forEach(function (g) {
-          if (g && typeof g.percentage === "number") {
-            const p = g.percentage / 100;
-            sumSq += p * p;
-            any = true;
-          }
-        });
-        return any ? 1 - sumSq : null;
-      },
-      format: function (v) {
-        return (Math.round(v * 100) / 100).toString();
-      },
-    },
-  ];
-
   function insightFormatPct(v) {
     return Math.round(v * 10) / 10 + "%";
   }
+
+  // Percentage of a named population group for a ward, or null.
+  function insightGroupPct(w, re) {
+    const groups = w.demo && w.demo.population_groups;
+    if (!Array.isArray(groups)) {
+      return null;
+    }
+    let val = null;
+    groups.forEach(function (g) {
+      if (g && re.test(String(g.label)) && typeof g.percentage === "number") {
+        val = g.percentage;
+      }
+    });
+    return val;
+  }
+
+  // Summed share of the monthly-income bands whose upper bound is at
+  // most `maxRand` (parses the last number out of labels like
+  // "R1 601 – R3 200"). A proxy: income is only the top few bands per
+  // ward, so treat "has income data but no low band" as 0, not null.
+  function insightIncomeAtMost(w, maxRand) {
+    const cats = w.demo && w.demo.monthly_income && w.demo.monthly_income.categories;
+    if (!Array.isArray(cats)) {
+      return null;
+    }
+    let sum = 0;
+    let hasData = false;
+    cats.forEach(function (c) {
+      if (c && typeof c.percentage === "number") {
+        hasData = true;
+        const parts = String(c.label).split(/[–-]/);
+        const upper = parseInt(parts[parts.length - 1].replace(/[^\d]/g, ""), 10);
+        if (isFinite(upper) && upper <= maxRand) {
+          sum += c.percentage;
+        }
+      }
+    });
+    return hasData ? sum : null;
+  }
+
+  // Simpson diversity index (1 - Σpᵢ²): 0 = one group dominates,
+  // ~0.75 = an even four-group mix.
+  function insightDiversity(w) {
+    const groups = w.demo && w.demo.population_groups;
+    if (!Array.isArray(groups)) {
+      return null;
+    }
+    let sumSq = 0;
+    let any = false;
+    groups.forEach(function (g) {
+      if (g && typeof g.percentage === "number") {
+        const p = g.percentage / 100;
+        sumSq += p * p;
+        any = true;
+      }
+    });
+    return any ? 1 - sumSq : null;
+  }
+
+  // Each metric pulls one number per ward from { demo, area, population }
+  // and belongs to a `group` (rendered as a subheading). `scale` is
+  // linear except where the spread is extreme (density, area -> log).
+  const INSIGHT_METRICS = [
+    // --- Population & space ---
+    {
+      key: "density", group: "Population & space", label: "Population density", scale: "log",
+      value: function (w) { return w.area > 0 && w.population > 0 ? w.population / w.area : null; },
+      format: function (v) { return Math.round(v).toLocaleString() + " /km²"; },
+    },
+    {
+      key: "population", group: "Population & space", label: "Total population", scale: "linear",
+      value: function (w) { return typeof w.population === "number" && w.population > 0 ? w.population : null; },
+      format: function (v) { return Math.round(v).toLocaleString(); },
+    },
+    {
+      key: "area", group: "Population & space", label: "Ward area", scale: "log",
+      value: function (w) { return typeof w.area === "number" && w.area > 0 ? w.area : null; },
+      format: function (v) { return (Math.round(v * 100) / 100).toLocaleString() + " km²"; },
+    },
+    {
+      key: "working_age", group: "Population & space", label: "Working age (15–64)", scale: "linear",
+      value: function (w) {
+        const a = w.demo && w.demo.age_demographics && w.demo.age_demographics.age_15_64;
+        return a && typeof a.percentage === "number" ? a.percentage : null;
+      },
+      format: insightFormatPct,
+    },
+    {
+      key: "diversity", group: "Population & space", label: "Population diversity", scale: "linear",
+      value: insightDiversity,
+      format: function (v) { return (Math.round(v * 100) / 100).toString(); },
+    },
+    // --- Economy ---
+    {
+      key: "unemployment", group: "Economy", label: "Unemployment", scale: "linear",
+      value: function (w) { return insightPctFromList(w.demo && w.demo.employment, function (l) { return /unemploy/i.test(l); }); },
+      format: insightFormatPct,
+    },
+    {
+      key: "low_income", group: "Economy", label: "Lower income (≤ R3 200)", scale: "linear",
+      value: function (w) { return insightIncomeAtMost(w, 3200); },
+      format: insightFormatPct,
+    },
+    // --- Education (ages 20+) ---
+    {
+      key: "no_matric", group: "Education (20+)", label: "No matric", scale: "linear",
+      value: function (w) { return insightPctFromList(w.demo && w.demo.education && w.demo.education.categories, function (l) { return /no matric/i.test(l); }); },
+      format: insightFormatPct,
+    },
+    {
+      key: "matriculated", group: "Education (20+)", label: "Matriculated", scale: "linear",
+      value: function (w) { return insightPctFromList(w.demo && w.demo.education && w.demo.education.categories, function (l) { return /matriculated/i.test(l); }); },
+      format: insightFormatPct,
+    },
+    {
+      key: "higher_ed", group: "Education (20+)", label: "Higher education", scale: "linear",
+      value: function (w) { return insightPctFromList(w.demo && w.demo.education && w.demo.education.categories, function (l) { return /higher/i.test(l); }); },
+      format: insightFormatPct,
+    },
+    // --- Housing ---
+    {
+      key: "informal", group: "Housing", label: "Informal dwellings", scale: "linear",
+      value: function (w) { return insightPctFromList(w.demo && w.demo.dwelling, function (l) { return /informal/i.test(l); }); },
+      format: insightFormatPct,
+    },
+    {
+      key: "formal", group: "Housing", label: "Formal (brick/concrete)", scale: "linear",
+      value: function (w) { return insightPctFromList(w.demo && w.demo.dwelling, function (l) { return /brick/i.test(l); }); },
+      format: insightFormatPct,
+    },
+    // --- Population groups ---
+    {
+      key: "black_african", group: "Population groups", label: "Black African", scale: "linear",
+      value: function (w) { return insightGroupPct(w, /black/i); },
+      format: insightFormatPct,
+    },
+    {
+      key: "coloured", group: "Population groups", label: "Coloured", scale: "linear",
+      value: function (w) { return insightGroupPct(w, /coloured/i); },
+      format: insightFormatPct,
+    },
+    {
+      key: "white", group: "Population groups", label: "White", scale: "linear",
+      value: function (w) { return insightGroupPct(w, /white/i); },
+      format: insightFormatPct,
+    },
+  ];
 
   function insightLerpColor(a, b, t) {
     function ch(hex, i) {
@@ -2826,7 +2886,15 @@
         metricList.appendChild(row);
       }
       addRadio("", "None (default)");
+      let lastGroup = null;
       INSIGHT_METRICS.forEach(function (m) {
+        if (m.group && m.group !== lastGroup) {
+          const gh = document.createElement("div");
+          gh.className = "insights-metric-group";
+          gh.textContent = m.group;
+          metricList.appendChild(gh);
+          lastGroup = m.group;
+        }
         addRadio(m.key, m.label);
       });
       body.appendChild(metricList);

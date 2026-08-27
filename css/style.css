@@ -427,16 +427,33 @@ a {
   border-radius: 8px;
   margin: 0.5rem 0.6rem 0;
   padding: 0.35rem 0.6rem;
+  /* Grouped list can be long — cap and scroll so the control never
+     runs off the map. */
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.insights-metric-group {
+  color: #971a32;
+  font-weight: 700;
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin: 0.4rem 0 0.1rem;
+}
+
+.insights-metric-group:first-child {
+  margin-top: 0;
 }
 
 .insights-metric-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.22rem 0;
+  padding: 0.18rem 0;
   color: #002157;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
 }
 
