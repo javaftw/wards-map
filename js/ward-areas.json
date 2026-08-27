@@ -1,0 +1,119 @@
+{
+  "areas": [
+    {
+      "wardid": 10204001,
+      "ward": 1,
+      "area_km2": 204.65
+    },
+    {
+      "wardid": 10204002,
+      "ward": 2,
+      "area_km2": 5.71
+    },
+    {
+      "wardid": 10204003,
+      "ward": 3,
+      "area_km2": 104.9
+    },
+    {
+      "wardid": 10204004,
+      "ward": 4,
+      "area_km2": 25.64
+    },
+    {
+      "wardid": 10204005,
+      "ward": 5,
+      "area_km2": 116.71
+    },
+    {
+      "wardid": 10204006,
+      "ward": 6,
+      "area_km2": 39.38
+    },
+    {
+      "wardid": 10204007,
+      "ward": 7,
+      "area_km2": 2.66
+    },
+    {
+      "wardid": 10204008,
+      "ward": 8,
+      "area_km2": 0.78
+    },
+    {
+      "wardid": 10204009,
+      "ward": 9,
+      "area_km2": 0.75
+    },
+    {
+      "wardid": 10204010,
+      "ward": 10,
+      "area_km2": 1.48
+    },
+    {
+      "wardid": 10204011,
+      "ward": 11,
+      "area_km2": 27.11
+    },
+    {
+      "wardid": 10204012,
+      "ward": 12,
+      "area_km2": 2.14
+    },
+    {
+      "wardid": 10204013,
+      "ward": 13,
+      "area_km2": 0.46
+    },
+    {
+      "wardid": 10204014,
+      "ward": 14,
+      "area_km2": 0.21
+    },
+    {
+      "wardid": 10204015,
+      "ward": 15,
+      "area_km2": 0.31
+    },
+    {
+      "wardid": 10204016,
+      "ward": 16,
+      "area_km2": 0.76
+    },
+    {
+      "wardid": 10204017,
+      "ward": 17,
+      "area_km2": 1.49
+    },
+    {
+      "wardid": 10204018,
+      "ward": 18,
+      "area_km2": 13.74
+    },
+    {
+      "wardid": 10204019,
+      "ward": 19,
+      "area_km2": 109.51
+    },
+    {
+      "wardid": 10204020,
+      "ward": 20,
+      "area_km2": 112.03
+    },
+    {
+      "wardid": 10204021,
+      "ward": 21,
+      "area_km2": 55.42
+    },
+    {
+      "wardid": 10204022,
+      "ward": 22,
+      "area_km2": 8.87
+    },
+    {
+      "wardid": 10204023,
+      "ward": 23,
+      "area_km2": 1.12
+    }
+  ]
+}

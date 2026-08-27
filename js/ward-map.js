@@ -52,6 +52,7 @@
     dataUrls: {
       councillors: "js/councillors.json",
       demographics: "js/demographics.json",
+      areas: "js/ward-areas.json",
     },
 
     icons: {
@@ -262,10 +263,24 @@
       console.warn("Could not load demographics.json:", err);
       return { wards: {} };
     });
+    const areasPayload = await fetchJson(CONFIG.dataUrls.areas).catch(function (err) {
+      console.warn("Could not load ward-areas.json:", err);
+      return { areas: [] };
+    });
 
     const councillorsByWardNo = {};
     (councillorsPayload.councillors || []).forEach(function (c) {
       councillorsByWardNo[String(c.wardid)] = c;
+    });
+
+    // Precomputed ward areas (km²), keyed on wardid to match everything
+    // else. See js/ward-areas.json (generated once from the boundary
+    // geometry). Population density is derived from this at render time.
+    const areaByWardNo = {};
+    (areasPayload.areas || []).forEach(function (a) {
+      if (a && a.wardid != null && typeof a.area_km2 === "number") {
+        areaByWardNo[String(a.wardid)] = a.area_km2;
+      }
     });
 
     // demographics.json is keyed by ward number ("1".."23"); each entry
@@ -291,6 +306,7 @@
       councillorsByWardNo: councillorsByWardNo,
       populationByWardNo: populationByWardNo,
       demographicsByWardNo: demographicsByWardNo,
+      areaByWardNo: areaByWardNo,
     };
   }
 
@@ -522,8 +538,8 @@
   // lone age figure becomes a two-slice "15–64 vs rest". Sections with
   // no usable numbers (e.g. ward 23, all null) are dropped entirely.
   // `context` carries the figures the raw demographics block doesn't:
-  // { wardNumber, wardPopulation, totalPopulation } for the leading
-  // "Population" (ward's share of the municipality) section.
+  // { wardNumber, wardPopulation, totalPopulation, wardArea } for the
+  // leading area/density and population-share sections.
   function buildDemographicSections(demo, context) {
     const sections = [];
     const ctx = context || {};
@@ -571,9 +587,20 @@
       }
     }
 
-    // Leading section: this ward's share of the municipality's total
-    // population. Values are percentages (share vs remainder) so the
-    // pie/legend maths matches the other sections.
+    // Leading section: ward area and derived population density. This is
+    // a plain stat block (no pie) — see buildDemographicSection.
+    if (typeof ctx.wardArea === "number" && ctx.wardArea > 0) {
+      const stats = [{ label: "Area", value: ctx.wardArea.toLocaleString() + " km²" }];
+      if (typeof ctx.wardPopulation === "number" && ctx.wardPopulation > 0) {
+        const density = Math.round(ctx.wardPopulation / ctx.wardArea);
+        stats.push({ label: "Population density", value: density.toLocaleString() + " /km²" });
+      }
+      sections.push({ title: "Ward Area & Density", stats: stats });
+    }
+
+    // This ward's share of the municipality's total population. Values
+    // are percentages (share vs remainder) so the pie/legend maths
+    // matches the other sections.
     if (
       typeof ctx.wardPopulation === "number" && ctx.wardPopulation > 0 &&
       typeof ctx.totalPopulation === "number" && ctx.totalPopulation > 0
@@ -609,11 +636,12 @@
     return sections;
   }
 
-  // Renders one section: a donut pie beside a colour-keyed legend of
-  // label + percentage. Slice colours come from PieGraph's palette by
-  // original index, and the legend re-derives the same colours (via
-  // PieGraph.colorAt) so the two always agree — skipping the same
-  // null/zero slices PieGraph itself drops.
+  // Renders one section. A `stats` section (e.g. area & density) is a
+  // simple label/value list; otherwise it's a donut pie beside a
+  // colour-keyed legend of label + percentage. Slice colours come from
+  // PieGraph's palette by original index, and the legend re-derives the
+  // same colours (via PieGraph.colorAt) so the two always agree —
+  // skipping the same null/zero slices PieGraph itself drops.
   function buildDemographicSection(section) {
     const wrap = document.createElement("div");
     wrap.className = "demographics-section";
@@ -622,6 +650,26 @@
     title.className = "demographics-section-title";
     title.textContent = section.title;
     wrap.appendChild(title);
+
+    if (section.stats) {
+      const stats = document.createElement("div");
+      stats.className = "demographics-stats";
+      section.stats.forEach(function (stat) {
+        const row = document.createElement("div");
+        row.className = "demographics-stat-row";
+        const label = document.createElement("span");
+        label.className = "demographics-stat-label";
+        label.textContent = stat.label;
+        row.appendChild(label);
+        const value = document.createElement("span");
+        value.className = "demographics-stat-value";
+        value.textContent = stat.value;
+        row.appendChild(value);
+        stats.appendChild(row);
+      });
+      wrap.appendChild(stats);
+      return wrap;
+    }
 
     const body = document.createElement("div");
     body.className = "demographics-section-body";
@@ -680,7 +728,7 @@
   // returns null when there's nothing to show (no data, or PieGraph
   // wasn't loaded). Mirrors the Tools box: navy header with a rotating
   // collapse chevron over a scrollable white body.
-  function createDemographicsControl(wardNumber, demoEntry, totalPopulation) {
+  function createDemographicsControl(wardNumber, demoEntry, totalPopulation, wardArea) {
     if (typeof window.PieGraph === "undefined" || !demoEntry || !demoEntry.demographics) {
       return null;
     }
@@ -688,6 +736,7 @@
       wardNumber: wardNumber,
       wardPopulation: demoEntry.population,
       totalPopulation: totalPopulation,
+      wardArea: wardArea,
     });
     if (sections.length === 0) {
       return null;
@@ -2478,7 +2527,7 @@
     const refPromise = fetchReferenceData();
 
     let mdbFailed = false;
-    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {} };
+    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {} };
     try {
       refData = await refPromise;
     } catch (err) {
@@ -2515,7 +2564,8 @@
       // height-capped so it never overlaps the bottom-right legend.
       const demoEntry = refData.demographicsByWardNo[wardNo];
       const totalPopulation = sumPopulation(refData.populationByWardNo);
-      const demoControl = createDemographicsControl(wardNumber, demoEntry, totalPopulation);
+      const wardArea = refData.areaByWardNo[wardNo];
+      const demoControl = createDemographicsControl(wardNumber, demoEntry, totalPopulation, wardArea);
       if (demoControl) {
         demoControl.addTo(map);
         fitDemographicsPanelToLegend(map, demoControl, legend);
@@ -2533,6 +2583,7 @@
               wardNumber: wardNumber,
               wardPopulation: demoEntry.population,
               totalPopulation: totalPopulation,
+              wardArea: wardArea,
             })
           : null;
         return {
@@ -2626,7 +2677,7 @@
     const refPromise = fetchReferenceData();
 
     let mdbFailed = false;
-    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {} };
+    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {} };
     try {
       refData = await refPromise;
     } catch (err) {
