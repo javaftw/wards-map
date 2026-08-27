@@ -302,6 +302,12 @@
     const osm = L.tileLayer(CONFIG.osmTileUrl, {
       attribution: CONFIG.osmAttribution,
       maxZoom: CONFIG.osmMaxZoom,
+      // Load tiles CORS-clean (OSM's CDN sends Access-Control-Allow-
+      // Origin: *) so the PDF capture can reuse the already-loaded tile
+      // images directly, instead of html2canvas re-fetching each one in
+      // CORS mode — that re-fetch races the capture and leaves blank
+      // blocks, especially on the deployed (non-localhost) site.
+      crossOrigin: true,
     });
     const googleSat = L.tileLayer(CONFIG.googleSatTileUrl, {
       subdomains: CONFIG.googleSatSubdomains,
@@ -923,11 +929,15 @@
 
   // Resolves once the base tile layer has finished loading its current
   // view, then waits out Leaflet's tile fade-in. The `load` event fires
-  // when tiles are *added*, but their opacity transition (and the
-  // pruning of stale previous-zoom tiles) is still in flight — capturing
-  // then catches half-faded tiles that reveal the grey container
-  // background. The settle delay lets that finish. Falls back to a
-  // timeout when nothing new needs loading (all tiles cached).
+  // when tiles finish loading; the settle delay then lets the opacity
+  // fade-in (and pruning of stale tiles) complete before capture, so we
+  // don't catch half-faded tiles revealing the grey container.
+  //
+  // The `timeoutMs` fallback must be generous: on the deployed site the
+  // re-framed view requests fresh tiles over the network, and capturing
+  // before they arrive leaves missing blocks. When the layer isn't
+  // loading anything (all tiles already cached) the `load` event won't
+  // fire, so we resolve promptly instead of waiting out the timeout.
   function waitForMapIdle(tileLayer, timeoutMs) {
     const FADE_SETTLE_MS = 450; // > Leaflet's ~200ms tile fade
     return new Promise(function (resolve) {
@@ -948,8 +958,15 @@
       function onLoad() {
         finish();
       }
-      if (tileLayer) {
-        tileLayer.on("load", onLoad);
+      if (!tileLayer) {
+        finish();
+        return;
+      }
+      tileLayer.on("load", onLoad);
+      // Nothing pending -> no `load` will come; don't wait for the cap.
+      // (_loading is Leaflet-internal but stable for the pinned 1.9.x.)
+      if (tileLayer._loading === false) {
+        finish();
       }
       const timer = setTimeout(finish, timeoutMs);
     });
@@ -994,7 +1011,7 @@
     map.fitBounds(viewBounds, { animate: false });
 
     try {
-      await waitForMapIdle(tileLayer, 2500);
+      await waitForMapIdle(tileLayer, 10000);
       return await html2canvas(container, {
         useCORS: true,
         backgroundColor: "#ffffff",
