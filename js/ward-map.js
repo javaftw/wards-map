@@ -1257,7 +1257,7 @@
       });
       viewport.className = "pdf-demo-viewport";
       const inner = setStyles(document.createElement("div"), {
-        transformOrigin: "top left",
+        transformOrigin: "top center",
       });
       inner.className = "pdf-demo-inner";
       context.demoSections.forEach(function (section) {
@@ -1392,21 +1392,22 @@
   }
 
   // Uniformly scales the demographics holder down so every section fits
-  // the column height (the panel has more sections than fit at full
-  // size). Only ever shrinks; widens the holder first so the scaled
-  // result still fills the column width.
+  // the column height. Scales in place (transform-origin: top centre, so
+  // the slightly narrower result stays centred) — deliberately NOT via a
+  // width change: an over-wide element inside the overflow:hidden
+  // viewport is clipped inconsistently by html2canvas, which is what made
+  // the panel spill once an extra section was added. A small safety
+  // margin avoids a sub-pixel clip at the bottom.
   function fitPdfDemographics(pageEl) {
     const viewport = pageEl.querySelector(".pdf-demo-viewport");
     const inner = pageEl.querySelector(".pdf-demo-inner");
     if (!viewport || !inner) {
       return;
     }
-    const avail = viewport.clientHeight;
+    const avail = viewport.clientHeight - 2;
     const natural = inner.scrollHeight;
     if (natural > avail && natural > 0) {
-      const scale = avail / natural;
-      inner.style.width = 100 / scale + "%";
-      inner.style.transform = "scale(" + scale + ")";
+      inner.style.transform = "scale(" + avail / natural + ")";
     }
   }
 
