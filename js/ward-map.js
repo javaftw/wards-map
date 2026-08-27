@@ -1100,10 +1100,10 @@
   }
 
   // Builds the offscreen page element matching the wireframe. context:
-  //   { municipalityText, wardText, councillorText, demoSections }
-  // demoSections null/empty (e.g. all-wards) drops the left column and
-  // lets the map span the full body width.
-  function buildPdfPageElement(context, mapDataUrl) {
+  //   { municipalityText, wardText, councillorText, ... }
+  // `demoDataUrl` is the pre-rendered demographics image (or null, e.g.
+  // all-wards) — null drops the left column and the map spans full width.
+  function buildPdfPageElement(context, mapDataUrl, demoDataUrl) {
     const NAVY = "#002157";
     const MAROON = "#971a32";
     const WHITE = "#ffffff";
@@ -1231,7 +1231,7 @@
       minHeight: "0",
     });
 
-    if (context.demoSections && context.demoSections.length) {
+    if (demoDataUrl) {
       const demoCol = setStyles(document.createElement("div"), {
         background: MAROON,
         flex: "0 0 " + PDF_DEMO_W + "px",
@@ -1248,22 +1248,23 @@
         letterSpacing: "1px",
         padding: "12px 14px 4px",
       }).textContent = "WARD DEMOGRAPHICS";
-      // Viewport clips; the inner holder is uniformly scaled down by
-      // fitPdfDemographics after layout so all sections fit the column.
+      // The sections are pre-rendered to one image (captureDemographics-
+      // Canvas); it's sized to fit the column by fitPdfDemographicsImage
+      // after layout. Scaling an <img> is reliable in html2canvas,
+      // whereas a CSS transform on live DOM is not.
       const viewport = setStyles(document.createElement("div"), {
         flex: "1 1 auto",
         overflow: "hidden",
         paddingBottom: "8px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       });
       viewport.className = "pdf-demo-viewport";
-      const inner = setStyles(document.createElement("div"), {
-        transformOrigin: "top center",
-      });
-      inner.className = "pdf-demo-inner";
-      context.demoSections.forEach(function (section) {
-        inner.appendChild(buildDemographicSection(section));
-      });
-      viewport.appendChild(inner);
+      const demoImg = setStyles(document.createElement("img"), { display: "block" });
+      demoImg.className = "pdf-demo-img";
+      demoImg.src = demoDataUrl;
+      viewport.appendChild(demoImg);
       demoCol.appendChild(viewport);
       body.appendChild(demoCol);
     }
@@ -1391,24 +1392,59 @@
     img.style.height = mapCanvas.height * scale + "px";
   }
 
-  // Uniformly scales the demographics holder down so every section fits
-  // the column height. Scales in place (transform-origin: top centre, so
-  // the slightly narrower result stays centred) — deliberately NOT via a
-  // width change: an over-wide element inside the overflow:hidden
-  // viewport is clipped inconsistently by html2canvas, which is what made
-  // the panel spill once an extra section was added. A small safety
-  // margin avoids a sub-pixel clip at the bottom.
-  function fitPdfDemographics(pageEl) {
-    const viewport = pageEl.querySelector(".pdf-demo-viewport");
-    const inner = pageEl.querySelector(".pdf-demo-inner");
-    if (!viewport || !inner) {
+  // Renders the demographics sections to a single canvas (maroon card
+  // stack) so the composed page can place them as one image. Doing this
+  // instead of scaling live DOM sidesteps html2canvas's unreliable
+  // CSS-transform handling — an <img> scales predictably.
+  async function captureDemographicsCanvas(sections) {
+    const MAROON = "#971a32";
+    const holder = setStyles(document.createElement("div"), {
+      position: "fixed",
+      left: "-100000px",
+      top: "0",
+      width: PDF_DEMO_W + "px",
+      background: MAROON,
+      paddingBottom: "8px",
+      boxSizing: "border-box",
+      fontFamily: getComputedStyle(document.body).fontFamily || "sans-serif",
+    });
+    sections.forEach(function (section) {
+      holder.appendChild(buildDemographicSection(section));
+    });
+    document.body.appendChild(holder);
+    try {
+      return await html2canvas(holder, {
+        useCORS: true,
+        backgroundColor: MAROON,
+        logging: false,
+        scale: 2,
+      });
+    } finally {
+      document.body.removeChild(holder);
+    }
+  }
+
+  // Sizes the pre-rendered demographics image to fit its column (contain,
+  // centred) preserving aspect. When the sections are taller than the
+  // column they scale down as one image — reliably, unlike a live-DOM
+  // transform. Called after the page is attached so the area has real dims.
+  function fitPdfDemographicsImage(pageEl, demoCanvas) {
+    const area = pageEl.querySelector(".pdf-demo-viewport");
+    const img = pageEl.querySelector(".pdf-demo-img");
+    if (!area || !img || !demoCanvas.width || !demoCanvas.height) {
       return;
     }
-    const avail = viewport.clientHeight - 2;
-    const natural = inner.scrollHeight;
-    if (natural > avail && natural > 0) {
-      inner.style.transform = "scale(" + avail / natural + ")";
+    const areaW = area.clientWidth;
+    const areaH = area.clientHeight;
+    const aspect = demoCanvas.width / demoCanvas.height;
+    let w = areaW;
+    let h = areaW / aspect;
+    if (h > areaH) {
+      h = areaH;
+      w = areaH * aspect;
     }
+    img.style.width = w + "px";
+    img.style.height = h + "px";
   }
 
   // Pixel size of the map area within the composed page, derived from
@@ -1455,10 +1491,22 @@
         return;
       }
 
-      const pageEl = buildPdfPageElement(context, mapCanvas.toDataURL("image/png"));
+      // Pre-render the demographics sections to one image (if any).
+      let demoCanvas = null;
+      if (context.demoSections && context.demoSections.length) {
+        demoCanvas = await captureDemographicsCanvas(context.demoSections);
+      }
+
+      const pageEl = buildPdfPageElement(
+        context,
+        mapCanvas.toDataURL("image/png"),
+        demoCanvas ? demoCanvas.toDataURL("image/png") : null
+      );
       document.body.appendChild(pageEl);
       fitPdfMapImage(pageEl, mapCanvas);
-      fitPdfDemographics(pageEl);
+      if (demoCanvas) {
+        fitPdfDemographicsImage(pageEl, demoCanvas);
+      }
 
       try {
         const pageCanvas = await html2canvas(pageEl, {
