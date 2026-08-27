@@ -2459,8 +2459,10 @@
   const INSIGHT_RAMPS = {
     viridis: ["#440154", "#414487", "#2a788e", "#22a884", "#7ad151", "#fde725"],
     blues: ["#eff3ff", "#c6dbef", "#6baed6", "#2171b5", "#08306b"],
+    bluered: ["#2166ac", "#92c5de", "#f7f7f7", "#f4a582", "#b2182b"],
   };
-  const INSIGHT_SCHEME_LABELS = { viridis: "Viridis", blues: "Blues" };
+  const INSIGHT_SCHEME_LABELS = { viridis: "Viridis", blues: "Blues", bluered: "Blue–Red" };
+  const INSIGHT_QUANTILE_CLASSES = 5;
 
   // Sums the percentages whose label matches. Returns 0 (not null) when
   // the ward has data in this list but nothing matches — e.g. a ward
@@ -2610,15 +2612,40 @@
     return (v - min) / (max - min);
   }
 
+  // Equal-count (quantile) classification: sorts the values into k
+  // classes with roughly equal membership and returns value -> ramp
+  // position (one of k discrete steps). Better than linear for skewed
+  // metrics, where one extreme ward would otherwise flatten the rest.
+  function insightQuantileClasser(values, k) {
+    const sorted = values.slice().sort(function (a, b) {
+      return a - b;
+    });
+    const n = sorted.length;
+    const breaks = [];
+    for (let i = 1; i < k; i++) {
+      breaks.push(sorted[Math.min(Math.floor((i * n) / k), n - 1)]);
+    }
+    return function (v) {
+      let cls = 0;
+      for (let i = 0; i < breaks.length; i++) {
+        if (v >= breaks[i]) {
+          cls = i + 1;
+        }
+      }
+      return k > 1 ? cls / (k - 1) : 0.5;
+    };
+  }
+
   // `wards`: [{ wardNumber, layer, demo, area, population }].
   // `insightState` is shared with the hover so the tooltip can show the
   // active metric's value and restore the right fill opacity.
-  function createWardInsightsControl(wards, insightState) {
+  function createWardInsightsControl(map, wards, insightState) {
     const metricsByKey = {};
     INSIGHT_METRICS.forEach(function (m) {
       metricsByKey[m.key] = m;
     });
     let scheme = "viridis";
+    let classification = "continuous"; // or "quantile"
     let activeKey = null;
     let legendWrap, gradientBar, minLabel, maxLabel, legendTitle;
 
@@ -2642,9 +2669,17 @@
       maxLabel.textContent = metric.format(max);
     }
 
+    // Voting-station icons clutter a shaded map, so hide them (via a
+    // container class — purely visual, so it doesn't fight the Tools
+    // box's Voting Stations toggle) whenever a metric is active.
+    function setStationsHidden(hidden) {
+      map.getContainer().classList.toggle("insights-choropleth-active", hidden);
+    }
+
     function apply() {
       if (!activeKey) {
         restoreDefault();
+        setStationsHidden(false);
         insightState.activeKey = null;
         insightState.metric = null;
         insightState.valueByWard = {};
@@ -2667,13 +2702,23 @@
       const min = values.length ? Math.min.apply(null, values) : 0;
       const max = values.length ? Math.max.apply(null, values) : 0;
       const stops = INSIGHT_RAMPS[scheme];
+      // "continuous" uses the metric's own scale (linear/log); "quantile"
+      // buckets the wards into equal-count classes.
+      const quantile = classification === "quantile" && values.length
+        ? insightQuantileClasser(values, INSIGHT_QUANTILE_CLASSES)
+        : null;
       wards.forEach(function (w) {
         const v = valueByWard[w.wardNumber];
-        const color = v == null
-          ? INSIGHT_NODATA_COLOR
-          : insightRampColor(stops, insightNormalize(v, min, max, metric.scale));
+        let color;
+        if (v == null) {
+          color = INSIGHT_NODATA_COLOR;
+        } else {
+          const t = quantile ? quantile(v) : insightNormalize(v, min, max, metric.scale);
+          color = insightRampColor(stops, t);
+        }
         w.layer.setStyle({ fillColor: color, fillOpacity: INSIGHT_FILL_OPACITY });
       });
+      setStationsHidden(true);
       insightState.activeKey = activeKey;
       insightState.metric = metric;
       insightState.valueByWard = valueByWard;
@@ -2731,6 +2776,35 @@
         schemeRow.appendChild(btn);
       });
       body.appendChild(schemeRow);
+
+      // Classification toggle: continuous (metric's own scale) vs
+      // quantile (equal-count classes; better for skewed metrics).
+      const classHead = document.createElement("div");
+      classHead.className = "insights-subhead";
+      classHead.textContent = "Classification";
+      body.appendChild(classHead);
+
+      const classRow = document.createElement("div");
+      classRow.className = "insights-classes";
+      [
+        { key: "continuous", label: "Continuous" },
+        { key: "quantile", label: "Quantile" },
+      ].forEach(function (opt) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "insights-class" + (opt.key === classification ? " insights-class-active" : "");
+        btn.textContent = opt.label;
+        btn.addEventListener("click", function () {
+          classification = opt.key;
+          classRow.querySelectorAll(".insights-class").forEach(function (b) {
+            b.classList.remove("insights-class-active");
+          });
+          btn.classList.add("insights-class-active");
+          apply();
+        });
+        classRow.appendChild(btn);
+      });
+      body.appendChild(classRow);
 
       const metricList = document.createElement("div");
       metricList.className = "insights-metrics";
@@ -3182,7 +3256,7 @@
             : pop && typeof pop.total === "number" ? pop.total : null,
         };
       });
-      createWardInsightsControl(insightWards, insightState).addTo(map);
+      createWardInsightsControl(map, insightWards, insightState).addTo(map);
 
       const wardLabelController = createLabelController(map, wardEntries);
       wardEntries.forEach(function (entry, index) {

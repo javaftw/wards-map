@@ -391,6 +391,37 @@ a {
   box-shadow: 0 0 0 1px #fff;
 }
 
+.insights-classes {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0 0.8rem;
+}
+
+.insights-class {
+  flex: 1;
+  padding: 0.25rem 0;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.insights-class-active {
+  background: #fff;
+  color: #002157;
+  border-color: #fff;
+}
+
+/* When a choropleth metric is active, hide the voting-station markers
+   so they don't clutter the shaded wards. */
+.insights-choropleth-active .station-marker-icon {
+  display: none;
+}
+
 .insights-metrics {
   background: #fff;
   border-radius: 8px;
