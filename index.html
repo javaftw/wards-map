@@ -33,6 +33,25 @@
     </div>
   </div>
 
+  <!-- First-visit disclaimer (shown once per browser via localStorage). -->
+  <div id="disclaimer" class="disclaimer-overlay" hidden>
+    <div class="disclaimer-card" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
+      <div class="disclaimer-header">
+        <h2 id="disclaimer-title">Please read</h2>
+      </div>
+      <div class="disclaimer-body">
+        <p>This site builds its maps and charts from the most up-to-date
+          <strong>publicly available</strong> data &mdash; ward boundaries,
+          voting districts &amp; stations, and census figures.</p>
+        <p>It is <strong>not official</strong> and is <strong>not endorsed</strong>
+          by the Municipal Demarcation Board, the Electoral Commission (IEC),
+          Stellenbosch Municipality, or any other data provider. It is a
+          citizen&rsquo;s effort, provided as-is with no guarantee of accuracy.</p>
+      </div>
+      <button type="button" id="disclaimer-continue" class="disclaimer-continue">Continue</button>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin=""></script>

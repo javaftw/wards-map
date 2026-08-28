@@ -3410,7 +3410,42 @@
     }
   }
 
+  // First-visit disclaimer: shown once per browser (remembered via
+  // localStorage), dismissed by the Continue button. Fails open — if
+  // storage is unavailable it simply shows each visit.
+  function initDisclaimer() {
+    const overlay = document.getElementById("disclaimer");
+    if (!overlay) {
+      return;
+    }
+    const KEY = "wardmap-disclaimer-ack";
+    let acked = false;
+    try {
+      acked = window.localStorage.getItem(KEY) === "1";
+    } catch (err) {
+      /* storage blocked (private mode) — show it */
+    }
+    if (acked) {
+      return;
+    }
+    overlay.hidden = false;
+    const btn = document.getElementById("disclaimer-continue");
+    if (btn) {
+      btn.focus();
+      btn.addEventListener("click", function () {
+        overlay.hidden = true;
+        try {
+          window.localStorage.setItem(KEY, "1");
+        } catch (err) {
+          /* ignore */
+        }
+      });
+    }
+  }
+
   async function main() {
+    initDisclaimer();
+
     const rawWard = getWardParamFromLocation();
     const validation = validateWardParam(rawWard);
 
