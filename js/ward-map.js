@@ -3429,17 +3429,32 @@
       return;
     }
     overlay.hidden = false;
+
+    function dismiss() {
+      overlay.hidden = true;
+      document.removeEventListener("keydown", onKey);
+      try {
+        window.localStorage.setItem(KEY, "1");
+      } catch (err) {
+        /* ignore */
+      }
+    }
+    function onKey(e) {
+      if (e.key === "Escape") {
+        dismiss();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    // Backdrop click (on the overlay itself, not the card) dismisses.
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) {
+        dismiss();
+      }
+    });
     const btn = document.getElementById("disclaimer-continue");
     if (btn) {
       btn.focus();
-      btn.addEventListener("click", function () {
-        overlay.hidden = true;
-        try {
-          window.localStorage.setItem(KEY, "1");
-        } catch (err) {
-          /* ignore */
-        }
-      });
+      btn.addEventListener("click", dismiss);
     }
   }
 
