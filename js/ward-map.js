@@ -3422,6 +3422,14 @@
     const KEY = "wardmap-disclaimer-ack";
     let acked = false;
     try {
+      // Clean up the key left by the earlier localStorage version, so
+      // visitors who dismissed it back then are shown it again. Kept in
+      // its own try so a failure here can't skip the session check below.
+      window.localStorage.removeItem(KEY);
+    } catch (err) {
+      /* ignore */
+    }
+    try {
       acked = window.sessionStorage.getItem(KEY) === "1";
     } catch (err) {
       /* storage blocked (private mode) — show it */
