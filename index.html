@@ -33,7 +33,7 @@
     </div>
   </div>
 
-  <!-- First-visit disclaimer (shown once per browser via localStorage). -->
+  <!-- First-visit disclaimer (shown once per browser session via sessionStorage). -->
   <div id="disclaimer" class="disclaimer-overlay" hidden>
     <div class="disclaimer-card" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
       <div class="disclaimer-header">
@@ -41,12 +41,17 @@
       </div>
       <div class="disclaimer-body">
         <p>This site builds its maps and charts from the most up-to-date
-          <strong>publicly available</strong> data &mdash; ward boundaries,
-          voting districts &amp; stations, and census figures.</p>
-        <p>It is <strong>not official</strong> and is <strong>not endorsed</strong>
-          by the Municipal Demarcation Board, the Electoral Commission (IEC),
-          Stellenbosch Municipality, or any other data provider. It is a
-          citizen&rsquo;s effort, provided as-is with no guarantee of accuracy.</p>
+          <strong>publicly available</strong> data, covering ward boundaries,
+          voting districts and stations, and census figures.</p>
+        <p>Please note that the Electoral Commission (IEC) is actively and
+          continuously updating its voting district data, so not all voting
+          districts shown here are fully up to date yet.</p>
+        <p>This site is <strong>not official</strong> and is
+          <strong>not endorsed</strong> by the Municipal Demarcation Board,
+          the Electoral Commission (IEC), Stellenbosch Municipality, or any
+          other data provider. It is a citizen&rsquo;s effort, compiled with
+          care from those providers&rsquo; own published data. For anything
+          official, please confirm with the relevant authority.</p>
       </div>
       <button type="button" id="disclaimer-continue" class="disclaimer-continue">Continue</button>
     </div>

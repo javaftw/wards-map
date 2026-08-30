@@ -3410,9 +3410,10 @@
     }
   }
 
-  // First-visit disclaimer: shown once per browser (remembered via
-  // localStorage), dismissed by the Continue button. Fails open — if
-  // storage is unavailable it simply shows each visit.
+  // First-visit disclaimer: shown once per browser session (remembered via
+  // sessionStorage, so it returns on the user's next visit but not on
+  // reloads/navigation within the same session), dismissed by the Continue
+  // button. Fails open — if storage is unavailable it simply shows each visit.
   function initDisclaimer() {
     const overlay = document.getElementById("disclaimer");
     if (!overlay) {
@@ -3421,7 +3422,7 @@
     const KEY = "wardmap-disclaimer-ack";
     let acked = false;
     try {
-      acked = window.localStorage.getItem(KEY) === "1";
+      acked = window.sessionStorage.getItem(KEY) === "1";
     } catch (err) {
       /* storage blocked (private mode) — show it */
     }
@@ -3434,7 +3435,7 @@
       overlay.hidden = true;
       document.removeEventListener("keydown", onKey);
       try {
-        window.localStorage.setItem(KEY, "1");
+        window.sessionStorage.setItem(KEY, "1");
       } catch (err) {
         /* ignore */
       }
