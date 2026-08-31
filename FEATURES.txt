@@ -1,98 +1,160 @@
-STELLENBOSCH WARD MAP — FEATURES & CAPABILITIES
-================================================
+STELLENBOSCH WARD MAP
+An interactive ward atlas for Stellenbosch Municipality
 
-OVERVIEW
---------
-An interactive, single-page web map of the 23 electoral wards of
-Stellenbosch Municipality. Static site (HTML/CSS/vanilla JS + Leaflet),
-no build step, no backend. One page (index.html) serves two modes via
-the `ward` URL query parameter.
+WHY THIS EXISTS
+===============
 
-MODES
------
-- All-wards overview: index.html, index.html?ward=all, or no parameter.
-  Shows every ward boundary and all voting stations.
-- Single ward: index.html?ward=N  (N = 1..23). Shows that ward's
-  boundary, its voting districts (VDs), voting stations, and a
-  demographics panel.
-- Invalid/out-of-range ward -> friendly error with a link back.
+Residents ask three questions constantly: Which ward am I in? Who is my
+councillor and how do I reach them? Where do I vote? Today those answers
+live in a PDF map, a contact list on another page, and the IEC's website.
+Staff answer them by hand, over and over.
 
-DATA SOURCES
-------------
-- Ward boundaries: Western Cape Government ArcGIS MapServer (sourced
-  from the Municipal Demarcation Board). Primary layer; if it fails the
-  map shows an error.
-- Voting districts & stations: IEC (Electoral Commission) GIS API.
-  Non-fatal: the map still works and a notice explains what's missing.
-  All-wards mode fetches all 23 wards in parallel and tolerates partial
-  failure.
-- Reference data (local JSON): councillors.json (name, phone, party),
-  demographics.json (population + census breakdowns per ward). Non-fatal.
+This map answers all three in one click, on a phone, without anyone
+having to phone the switchboard. It already exists, it already works
+against live official data, and it costs nothing to run.
 
-MAP INTERACTION
----------------
-- Base layers: OpenStreetMap (default) and Google Satellite, switchable.
-- Polygon outlines recolour automatically for contrast (white on
-  satellite, brand colours otherwise).
-- Continuous (fractional) zoom for tight framing.
-- All-wards: hover a ward to highlight it and show a mouse-following
-  tooltip (ward number, councillor, population); click a ward to open
-  its single-ward view.
-- Single ward: hover a voting district to highlight it and show its VD
-  number; click a voting station marker for a popup (name, VD, address,
-  type).
-- Feature labels (ward names / VD numbers) are auto-placed at an
-  interior point of each polygon's on-screen area, hidden when they
-  don't fit or would overlap a higher-priority label.
 
-CUSTOM "TOOLS" CONTROL (top-left, collapsible)
-----------------------------------------------
-- Zoom in / Zoom out.
-- Zoom to area: drag a rectangle to zoom to exactly that box.
-- Recenter: return to the full extent of the current view.
-- Download PDF (see below).
-- Base-layer chooser (OSM / Google Satellite).
-- Layer visibility toggles (per ward / voting districts / voting
-  stations) with a Select/Deselect-All control.
-- Single-ward only: "All wards" button to jump back to the overview.
+WHAT IT DOES
+============
 
-LEGEND / KEY (bottom-right, collapsible)
-----------------------------------------
-- Ward name (single) or "All wards" title; councillor name & phone on
-  the single-ward view.
-- Style key: ward boundary, voting district, voting station swatches.
+One page, two views
+-------------------
+The all-wards overview shows every one of the 23 wards at once. Hover a
+ward and it lifts out of the map with its number, councillor and
+population; click it and you are in the detail view for that ward. Each
+ward has its own shareable link (?ward=11), so a councillor can put a
+direct link to their own ward on a poster, a WhatsApp group or a
+newsletter, and it opens straight to the right place.
 
-DEMOGRAPHICS PANEL (single ward only, top-right, collapsible)
-------------------------------------------------------------
-- Census pie/donut charts rendered by a self-contained SVG generator
-  (piegraph.js), sized to fit and coloured from a shared palette.
-- Sections: Ward Population (ward's share of the municipality),
-  Population group, Employment, Age (15-64 vs rest), Education (20+),
-  Monthly income, Dwelling.
-- Partial percentage lists are completed with a grey "Other" slice so
-  every chart reads as a full 100%.
-- Wards with no data are skipped entirely.
+Ward detail
+-----------
+The single-ward view draws the ward boundary, every voting district
+inside it, and every voting station as a clickable marker with its name,
+district number, address and station type. Alongside it sits the ward's
+demographic profile and its councillor's name and phone number.
 
-PDF EXPORT (A4 landscape, print-ready)
---------------------------------------
-Composed document (not a raw screenshot):
-- Header band: Stellenbosch logo (navy) -> gold chevron -> maroon panel
-  with "WARD N (year)" and the councillor's name & number.
-- Left column (single ward): "WARD DEMOGRAPHICS" with the pie charts,
-  auto-scaled to fit.
-- Map fills the remaining area, re-rendered at the page's aspect ratio
-  and framed to the current on-screen view, so everything visible on
-  screen stays in frame regardless of screen size (no cropping of
-  visible features).
-- Map overlays: style-key legend (bottom-right, above the OSM
-  attribution) and a compact data-source credit box (bottom-left:
-  MDB, IEC, Stellenbosch Municipality).
-- Gracefully warns if capture fails (e.g. on the Google Satellite layer,
-  whose tiles can't always be captured).
+Ward Insights: the map as an analysis tool
+------------------------------------------
+This is the part that goes beyond a wall map. Choose any of 15 metrics
+and the whole municipality recolours as a live choropleth:
 
-RESILIENCE & UX
----------------
-- Loading overlay during data fetches and PDF preparation.
-- Secondary data failures never block the primary map; explanatory
-  notices are shown instead.
-- Responsive: controls and panels adapt to small screens.
+  Population & space   population density, total population, ward area,
+                       working-age share, population diversity
+  Economy              unemployment, lower-income households (<= R3 200)
+  Education (20+)      no matric, matriculated, higher education
+  Housing              informal dwellings, formal (brick/concrete)
+  Population groups    Black African, Coloured, White
+
+Three colour schemes, and a choice between continuous shading and
+five-class quantile classification for metrics with a long tail. The
+legend redraws itself to match. In seconds you can see where informal
+housing concentrates, which wards carry the highest unemployment, or how
+population density varies across the municipality: the kind of picture
+that usually takes a GIS request and a two-week turnaround.
+
+Ward demographics at a glance
+-----------------------------
+Every ward gets a panel of census charts: its share of the municipal
+population, population group, employment, age structure, education for
+adults 20+, monthly income, and dwelling type. Charts are drawn as clean
+SVG, sized to fit, and every breakdown is completed to a full 100% so
+nothing reads as a misleading part-total. Area and population density
+are computed from the actual ward geometry.
+
+Print-ready PDF export, one click
+---------------------------------
+Not a screenshot. The map composes a proper A4 landscape document:
+municipal logo and header band, the ward number and councillor details,
+the demographic charts down the left, and the map itself re-rendered to
+fit the page exactly as framed on screen. Legend and data-source credits
+are placed on the map. Ward councillors get a presentable handout for a
+public meeting without a designer, and without a request to
+Communications.
+
+Map controls built for the job
+------------------------------
+Zoom, drag-a-box zoom-to-area, and recentre. A base-layer switch between
+street map and satellite imagery, with boundary colours that
+automatically recolour for contrast on each. Layer toggles for ward
+boundaries, voting districts and voting stations. Labels place
+themselves inside each polygon and step aside when they would collide,
+so the map stays legible at every zoom level.
+
+
+WHY IT CAN BE TRUSTED
+=====================
+
+Official data, fetched live
+---------------------------
+Ward boundaries come directly from the Municipal Demarcation Board's
+official 2026 hosted Feature Service, queried at page load. When the MDB
+republishes, the map follows. It is already serving the 2026
+demarcation, including the wards that were materially redrawn.
+
+Voting districts and stations come live from the Electoral Commission's
+own GIS API. Nothing is a stale local copy that quietly rots.
+
+Built to degrade, not to break
+------------------------------
+If the IEC API is slow or down, the ward map still renders and a plain
+notice explains what is missing. Ward data loads even when the
+reference data does not. A failure in a secondary source never takes the
+page down: an important property for a public-facing service that has to
+work during an election period.
+
+Honest about its limits
+-----------------------
+A first-visit notice tells every user plainly that the site is
+unofficial, that the IEC is still updating its voting district data, and
+that anything official should be confirmed with the relevant authority.
+No overclaiming.
+
+
+WHAT IT COSTS TO RUN
+====================
+
+Nothing, effectively. It is a static site: HTML, one stylesheet, one
+JavaScript file and a little JSON. No server, no database, no framework,
+no build pipeline, no monthly platform fee, no dependency treadmill. It
+will host on any existing municipal web space, or free on GitHub Pages.
+There is no runtime for anyone to patch and nothing to be breached: the
+site holds no user data, no logins, and no forms.
+
+Embedding it is one link or one iframe. It works on a phone, and it
+works on the ten-year-old desktop in a ward office.
+
+
+WHAT THE MUNICIPALITY WOULD GET
+===============================
+
+- Fewer switchboard calls asking "which ward am I in" and "who is my
+  councillor".
+- A per-ward link every councillor can share directly with residents.
+- A voting-station finder ready before the next local election.
+- Ward-level demographic comparison for planning and reporting, without
+  a GIS request queue.
+- A printable ward one-pager on demand.
+- All of it on official MDB and IEC data, updating itself.
+
+
+WHAT I AM PROPOSING
+===================
+
+Adopt it. I built this as a resident, on public data, at no cost to the
+Municipality, and I am offering it to Stellenbosch to use.
+
+The work I would like to do with the Municipality's help:
+
+1. Endorsement and a home. Let it live on a municipal URL so residents
+   can trust what they are looking at.
+2. Councillor data. A maintained contact list so the map is never out of
+   date after a by-election.
+3. Demographics on the 2026 boundaries. The census figures currently
+   shown are aggregated to the previous ward footprints. With access to
+   sub-place-level data these can be re-aggregated properly onto the new
+   wards.
+4. Whatever else is useful. Refuse collection days, ward committee
+   meeting venues, project locations: the map is built to take more
+   layers.
+
+It works today. Open it and see.
