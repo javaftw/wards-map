@@ -3,7 +3,7 @@
     {
       "wardid": 10204001,
       "ward": 1,
-      "area_km2": 204.65
+      "area_km2": 205.12
     },
     {
       "wardid": 10204002,
@@ -13,107 +13,107 @@
     {
       "wardid": 10204003,
       "ward": 3,
-      "area_km2": 104.9
+      "area_km2": 105.28
     },
     {
       "wardid": 10204004,
       "ward": 4,
-      "area_km2": 25.64
+      "area_km2": 25.55
     },
     {
       "wardid": 10204005,
       "ward": 5,
-      "area_km2": 116.71
+      "area_km2": 111.33
     },
     {
       "wardid": 10204006,
       "ward": 6,
-      "area_km2": 39.38
+      "area_km2": 47.61
     },
     {
       "wardid": 10204007,
       "ward": 7,
-      "area_km2": 2.66
+      "area_km2": 1.17
     },
     {
       "wardid": 10204008,
       "ward": 8,
-      "area_km2": 0.78
+      "area_km2": 0.64
     },
     {
       "wardid": 10204009,
       "ward": 9,
-      "area_km2": 0.75
+      "area_km2": 5.48
     },
     {
       "wardid": 10204010,
       "ward": 10,
-      "area_km2": 1.48
+      "area_km2": 1.34
     },
     {
       "wardid": 10204011,
       "ward": 11,
-      "area_km2": 27.11
+      "area_km2": 27.46
     },
     {
       "wardid": 10204012,
       "ward": 12,
-      "area_km2": 2.14
+      "area_km2": 1.81
     },
     {
       "wardid": 10204013,
       "ward": 13,
-      "area_km2": 0.46
+      "area_km2": 0.49
     },
     {
       "wardid": 10204014,
       "ward": 14,
-      "area_km2": 0.21
+      "area_km2": 0.42
     },
     {
       "wardid": 10204015,
       "ward": 15,
-      "area_km2": 0.31
+      "area_km2": 0.32
     },
     {
       "wardid": 10204016,
       "ward": 16,
-      "area_km2": 0.76
+      "area_km2": 0.91
     },
     {
       "wardid": 10204017,
       "ward": 17,
-      "area_km2": 1.49
+      "area_km2": 1.36
     },
     {
       "wardid": 10204018,
       "ward": 18,
-      "area_km2": 13.74
+      "area_km2": 7.06
     },
     {
       "wardid": 10204019,
       "ward": 19,
-      "area_km2": 109.51
+      "area_km2": 109.75
     },
     {
       "wardid": 10204020,
       "ward": 20,
-      "area_km2": 112.03
+      "area_km2": 149.94
     },
     {
       "wardid": 10204021,
       "ward": 21,
-      "area_km2": 55.42
+      "area_km2": 17.39
     },
     {
       "wardid": 10204022,
       "ward": 22,
-      "area_km2": 8.87
+      "area_km2": 4.3
     },
     {
       "wardid": 10204023,
       "ward": 23,
-      "area_km2": 1.12
+      "area_km2": 1.51
     }
   ]
 }

@@ -11,9 +11,23 @@
      1. CONFIGURATION
      ============================================================= */
   const CONFIG = {
+    // Ward boundaries: the Municipal Demarcation Board's official 2026
+    // hosted Feature Service. Single source of truth for the endpoint —
+    // change it here if the MDB republishes the dataset. `wardServiceItemId`
+    // is the stable ArcGIS item identifier for that hosted service; it is
+    // documentation only, nothing at runtime queries by item ID.
     wardLayerUrl:
-      "https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/AfriGIS_MainAdminBoundaries/MapServer/10",
+      "https://services7.arcgis.com/oeoyTUJC8HEeYsRB/ArcGIS/rest/services/Wards2026_02April2026/FeatureServer/0",
+    wardServiceItemId: "c253949831354e40ac37154de58922b5",
 
+    // The service holds every ward in the country; CAT_B selects the
+    // municipality. Wards are then addressed by the plain integer WardNo,
+    // never by a constructed WardID.
+    municipalityCode: "WC024",
+
+    // WardID ("10204011") is not used to fetch — the service supplies it
+    // per feature — but it is still the join key for councillors.json,
+    // demographics.json and ward-areas.json, and the ID the IEC API wants.
     wardNoPrefix: "10204",
     wardNoDigits: 3,
 
@@ -123,7 +137,7 @@
   }
 
   /* =============================================================
-     3. REST QUERYING (MDB/WCG + IEC)
+     3. REST QUERYING (MDB + IEC)
      ============================================================= */
 
   function buildWardNo(wardNumber) {
@@ -131,16 +145,12 @@
     return CONFIG.wardNoPrefix + padded;
   }
 
-  // Inverse of buildWardNo(): "10204011" -> 11.
-  function wardNumberFromWardNo(wardNo) {
-    return parseInt(String(wardNo).slice(CONFIG.wardNoPrefix.length), 10);
-  }
-
   async function queryWardLayer(whereClause) {
     const url = new URL(CONFIG.wardLayerUrl + "/query");
     url.searchParams.set("where", whereClause);
     url.searchParams.set("outFields", "*");
     url.searchParams.set("returnGeometry", "true");
+    url.searchParams.set("outSR", "4326");
     url.searchParams.set("f", "geojson");
     const requestUrl = url.toString();
 
@@ -173,12 +183,17 @@
     return payload;
   }
 
+  function municipalityWhere() {
+    return "CAT_B='" + CONFIG.municipalityCode + "'";
+  }
+
   function fetchWardGeoJSON(wardNumber) {
-    return queryWardLayer("WARD_NO='" + buildWardNo(wardNumber) + "'");
+    // WardNo is an integer field, so it is compared unquoted.
+    return queryWardLayer(municipalityWhere() + " AND WardNo=" + Number(wardNumber));
   }
 
   function fetchAllWardsGeoJSON() {
-    return queryWardLayer("WARD_NO LIKE '" + CONFIG.wardNoPrefix + "%'");
+    return queryWardLayer(municipalityWhere());
   }
 
   function buildVotingDistrictsByWardUrl(wardNumber) {
@@ -3283,16 +3298,19 @@
       (geojson.features || [])
         .slice()
         .sort(function (a, b) {
-          const aNo = (a.properties && a.properties.WARD_NO) || "";
-          const bNo = (b.properties && b.properties.WARD_NO) || "";
-          return String(aNo).localeCompare(String(bNo));
+          const aNo = Number((a.properties && a.properties.WardNo) || 0);
+          const bNo = Number((b.properties && b.properties.WardNo) || 0);
+          return aNo - bNo;
         })
         .forEach(function (feature) {
-          const wardNo = feature && feature.properties && feature.properties.WARD_NO;
-          if (!wardNo) {
+          const props = (feature && feature.properties) || {};
+          const wardNumber = Number(props.WardNo);
+          if (!wardNumber) {
             return;
           }
-          const wardNumber = wardNumberFromWardNo(wardNo);
+          // WardID comes from the service; fall back to building it in
+          // case a future republish drops the field.
+          const wardNo = props.WardID ? String(props.WardID) : buildWardNo(wardNumber);
           const wardLayerGroup = L.layerGroup().addTo(map);
           // className adds a pointer cursor (see .ward-clickable in
           // CSS) — only these all-wards polygons navigate on click,
