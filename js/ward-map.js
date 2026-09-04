@@ -1006,7 +1006,9 @@
   // (which lays the page out) and exportWardPdf (which derives the map
   // capture size from them) so the two never drift.
   const PDF_PAD = 28; // white page margin
-  const PDF_HEADER_H = 92;
+  // Tall enough for three right-aligned lines on the maroon: ward,
+  // councillor + phone, and the councillor's email.
+  const PDF_HEADER_H = 120;
   const PDF_BODY_GAP = 14; // between header and body
   const PDF_DEMO_W = 340; // demographics column width
   const PDF_DEMO_GAP = 14; // between demographics column and map
@@ -1146,7 +1148,8 @@
   }
 
   // Builds the offscreen page element matching the wireframe. context:
-  //   { municipalityText, wardText, councillorText, ... }
+  //   { municipalityText, wardText, councillorText,
+  //     councillorEmailText, ... }
   // `demoDataUrl` is the pre-rendered demographics image (or null, e.g.
   // all-wards) — null drops the left column and the map spans full width.
   function buildPdfPageElement(context, mapDataUrl, demoDataUrl) {
@@ -1265,6 +1268,15 @@
         fontWeight: "600",
         marginTop: "6px",
       }).textContent = context.councillorText;
+    }
+    // Plain text, not a link — a mailto: is inert on paper, and the
+    // address is what a reader needs either way.
+    if (context.councillorEmailText) {
+      setStyles(maroonText.appendChild(document.createElement("div")), {
+        fontSize: "20px",
+        fontWeight: "500",
+        marginTop: "4px",
+      }).textContent = context.councillorEmailText;
     }
     header.appendChild(maroonText);
     page.appendChild(header);
@@ -3282,6 +3294,7 @@
           municipalityText: CONFIG.municipalityName.toUpperCase(),
           wardText: "WARD " + wardNumber + " (" + new Date().getFullYear() + ")",
           councillorText: councillorText,
+          councillorEmailText: councillor && councillor.email ? councillor.email : "",
           demoSections: demoSections,
           includeVd: true,
         };
