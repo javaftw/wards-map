@@ -3230,6 +3230,7 @@
       L.DomEvent.disableClickPropagation(containerEl);
       L.DomEvent.disableScrollPropagation(containerEl);
       let collapsed = true;
+      let noneInput = null; // the "None (default)" metric radio
 
       const header = document.createElement("div");
       header.className = "insights-header";
@@ -3244,6 +3245,18 @@
       header.addEventListener("click", function () {
         collapsed = !collapsed;
         containerEl.classList.toggle("insights-collapsed", collapsed);
+        // Collapsing the panel clears any active metric: the controls
+        // that explain the shading (scheme, classification, the metric
+        // itself) are hidden while collapsed, so leaving a choropleth
+        // on the map with no visible way to read or change it is worse
+        // than dropping back to the plain ward colours.
+        if (collapsed && activeKey) {
+          activeKey = null;
+          if (noneInput) {
+            noneInput.checked = true;
+          }
+          apply();
+        }
       });
       containerEl.appendChild(header);
 
@@ -3322,8 +3335,9 @@
         row.appendChild(input);
         row.appendChild(span);
         metricList.appendChild(row);
+        return input;
       }
-      addRadio("", "None (default)");
+      noneInput = addRadio("", "None (default)");
       let lastGroup = null;
       INSIGHT_METRICS.forEach(function (m) {
         if (m.group && m.group !== lastGroup) {
