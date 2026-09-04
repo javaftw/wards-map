@@ -1080,7 +1080,11 @@
   // Relies on html2canvas re-fetching tiles with CORS: OSM sends the
   // needed header, but Google's raw satellite endpoint may not, so a
   // capture on that base layer can throw - surfaced to the caller.
-  async function captureMapForPdf(map, targetW, targetH) {
+  // `decorate` (optional) runs once the re-framed map is idle and just
+  // before the pixels are grabbed, and returns a cleanup function. It's
+  // how the voting-station labels get drawn into the capture without
+  // ever appearing on the live map.
+  async function captureMapForPdf(map, targetW, targetH, decorate) {
     const container = map.getContainer();
     const parent = container.parentNode;
     const nextSibling = container.nextSibling;
@@ -1107,8 +1111,12 @@
     map.invalidateSize(false);
     map.fitBounds(viewBounds, { animate: false });
 
+    let undecorate = null;
     try {
       await waitForMapIdle(tileLayer, 10000);
+      if (decorate) {
+        undecorate = decorate(map, container);
+      }
       return await html2canvas(container, {
         useCORS: true,
         backgroundColor: "#ffffff",
@@ -1131,6 +1139,9 @@
         },
       });
     } finally {
+      if (undecorate) {
+        undecorate();
+      }
       parent.insertBefore(container, nextSibling);
       container.style.width = prevInlineWidth;
       container.style.height = prevInlineHeight;
@@ -1138,6 +1149,198 @@
       map.invalidateSize(false);
       map.setView(prevCenter, prevZoom, { animate: false });
     }
+  }
+
+  /* ---- Voting-station labels (PDF capture only) ----
+     Drawn as plain DOM inside the map container for the duration of a
+     capture, then removed — they never appear on the live map, and are
+     laid out against the *capture's* dimensions, which differ from the
+     on-screen ones. Each label carries only the station's name and
+     street address (the VD number and permanency status stay in the
+     popup, where there's room for them). A label is placed only where
+     it fits without covering another label, a ward/VD label or a
+     station marker; ones that can't be placed are dropped rather than
+     stacked, which is what keeps a dense map readable. */
+
+  const STATION_LABEL_MAX_W = 150; // px, before wrapping
+  const STATION_LABEL_GAP = 3; // min clear space between placed boxes
+  // Distances from the marker to try, nearest first; at each distance
+  // the eight compass directions are tried in turn.
+  const STATION_LABEL_DISTANCES = [12, 22, 36, 56];
+  const STATION_LABEL_DIRECTIONS = [
+    { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 },
+    { x: 1, y: -1 }, { x: -1, y: -1 }, { x: 1, y: 1 }, { x: -1, y: 1 },
+  ];
+
+  function rectsOverlap(a, b, gap) {
+    return !(
+      a.right + gap <= b.left ||
+      b.right + gap <= a.left ||
+      a.bottom + gap <= b.top ||
+      b.bottom + gap <= a.top
+    );
+  }
+
+  // Bounding boxes, in container coordinates, of everything already on
+  // the map that a station label must not cover.
+  function collectStationLabelObstacles(container) {
+    const base = container.getBoundingClientRect();
+    const obstacles = [];
+    container.querySelectorAll(".feature-label-inner, .station-marker-icon").forEach(function (el) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        obstacles.push({
+          left: r.left - base.left,
+          top: r.top - base.top,
+          right: r.right - base.left,
+          bottom: r.bottom - base.top,
+        });
+      }
+    });
+    return obstacles;
+  }
+
+  function buildStationLabelBox(entry) {
+    const box = setStyles(document.createElement("div"), {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      maxWidth: STATION_LABEL_MAX_W + "px",
+      padding: "1px 4px",
+      background: "rgba(255, 255, 255, 0.94)",
+      border: "1px solid #971a32",
+      borderRadius: "2px",
+      color: "#002157",
+      lineHeight: "1.2",
+      // Kept offscreen until a slot is found, so it can be measured
+      // without flashing in the wrong place mid-capture.
+      visibility: "hidden",
+    });
+
+    setStyles(box.appendChild(document.createElement("div")), {
+      fontSize: "10px",
+      fontWeight: "700",
+    }).textContent = entry.name;
+
+    if (entry.address) {
+      setStyles(box.appendChild(document.createElement("div")), {
+        fontSize: "9px",
+        fontWeight: "400",
+      }).textContent = entry.address;
+    }
+
+    return box;
+  }
+
+  // Returns a cleanup function that removes everything it added.
+  function buildStationLabelOverlay(map, entries) {
+    const container = map.getContainer();
+    const size = map.getSize();
+
+    const overlay = setStyles(document.createElement("div"), {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      width: "100%",
+      height: "100%",
+      // Above every map pane but below the controls, and inert so it
+      // can't affect the live map if a capture is interrupted.
+      zIndex: "700",
+      pointerEvents: "none",
+      fontFamily: "inherit",
+    });
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + size.x + " " + size.y);
+    setStyles(svg, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      width: "100%",
+      height: "100%",
+      display: "block",
+    });
+    overlay.appendChild(svg);
+    container.appendChild(overlay);
+
+    const placed = collectStationLabelObstacles(container);
+
+    // North-west first, so the same map always produces the same set of
+    // labels rather than one that depends on fetch order.
+    const points = entries
+      .map(function (entry) {
+        return { entry: entry, point: map.latLngToContainerPoint(L.latLng(entry.lat, entry.lng)) };
+      })
+      .filter(function (item) {
+        return item.point.x >= 0 && item.point.y >= 0 && item.point.x <= size.x && item.point.y <= size.y;
+      })
+      .sort(function (a, b) {
+        return a.point.y - b.point.y || a.point.x - b.point.x;
+      });
+
+    points.forEach(function (item) {
+      const box = buildStationLabelBox(item.entry);
+      overlay.appendChild(box);
+      const w = box.offsetWidth;
+      const h = box.offsetHeight;
+
+      let slot = null;
+      STATION_LABEL_DISTANCES.some(function (distance) {
+        return STATION_LABEL_DIRECTIONS.some(function (dir) {
+          // The box is pushed out along `dir` and centred across it, so
+          // a due-east label is vertically centred on the marker.
+          const cx = item.point.x + dir.x * (distance + w / 2);
+          const cy = item.point.y + dir.y * (distance + h / 2);
+          const rect = {
+            left: cx - w / 2,
+            top: cy - h / 2,
+            right: cx + w / 2,
+            bottom: cy + h / 2,
+          };
+          if (rect.left < 0 || rect.top < 0 || rect.right > size.x || rect.bottom > size.y) {
+            return false;
+          }
+          const clash = placed.some(function (other) {
+            return rectsOverlap(rect, other, STATION_LABEL_GAP);
+          });
+          if (clash) {
+            return false;
+          }
+          slot = rect;
+          return true;
+        });
+      });
+
+      if (!slot) {
+        overlay.removeChild(box);
+        return;
+      }
+
+      setStyles(box, {
+        left: slot.left + "px",
+        top: slot.top + "px",
+        visibility: "visible",
+      });
+      placed.push(slot);
+
+      // Leader line to the nearest point on the box, so it always
+      // meets the edge facing the marker.
+      const anchorX = Math.max(slot.left, Math.min(item.point.x, slot.right));
+      const anchorY = Math.max(slot.top, Math.min(item.point.y, slot.bottom));
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", item.point.x);
+      line.setAttribute("y1", item.point.y);
+      line.setAttribute("x2", anchorX);
+      line.setAttribute("y2", anchorY);
+      line.setAttribute("stroke", "#971a32");
+      line.setAttribute("stroke-width", "1");
+      svg.appendChild(line);
+    });
+
+    return function () {
+      overlay.remove();
+    };
   }
 
   function setStyles(el, styles) {
@@ -1523,7 +1726,9 @@
   // demographics content, built per-mode via toolsControl.setPdfContext.
   // A loading overlay covers the map area while its container is briefly
   // moved offscreen for the re-framed capture.
-  async function exportWardPdf(map, context) {
+  // `stationLabels`, when given, is a list of { lat, lng, name, address }
+  // drawn over the map for the capture only (buildStationLabelOverlay).
+  async function exportWardPdf(map, context, stationLabels) {
     if (typeof html2canvas !== "function" || !window.jspdf) {
       window.alert("PDF export isn't available right now - the required libraries didn't load. Check your internet connection and try again.");
       return;
@@ -1536,9 +1741,15 @@
     showLoadingOverlay(true);
 
     try {
+      const decorate = stationLabels && stationLabels.length
+        ? function (capturedMap) {
+            return buildStationLabelOverlay(capturedMap, stationLabels);
+          }
+        : null;
+
       let mapCanvas;
       try {
-        mapCanvas = await captureMapForPdf(map, area.width, area.height);
+        mapCanvas = await captureMapForPdf(map, area.width, area.height, decorate);
       } catch (err) {
         console.error("PDF map capture failed:", err);
         window.alert(
@@ -1713,9 +1924,16 @@
     // Returns the { municipalityText, wardText, councillorText,
     // demoSections } context for the PDF export; set per mode.
     let pdfContextProvider = null;
+    let pdfRow = null; // the Download PDF row + its variant submenu
     const overlayEntries = []; // { layerGroup, input }
 
-    function buildActionRow(iconSrc, label, onClick) {
+    function currentPdfContext() {
+      return pdfContextProvider
+        ? pdfContextProvider()
+        : { municipalityText: CONFIG.municipalityName.toUpperCase(), wardText: "", councillorText: "", demoSections: null };
+    }
+
+    function createActionButton(iconSrc, label) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "tools-action-row";
@@ -1732,26 +1950,90 @@
       text.textContent = label;
       button.appendChild(text);
 
-      // onClick may return a Promise (e.g. PDF generation) — while
-      // it's pending, disable the row so it can't be triggered twice
-      // and show a subtle busy state. Synchronous actions (zoom,
-      // recenter) are unaffected since they return nothing.
+      return button;
+    }
+
+    // onClick may return a Promise (e.g. PDF generation) — while it's
+    // pending, disable the row so it can't be triggered twice and show
+    // a subtle busy state. Synchronous actions (zoom, recenter) are
+    // unaffected since they return nothing.
+    function runRowAction(button, onClick) {
+      if (button.disabled) {
+        return;
+      }
+      const result = onClick();
+      if (result && typeof result.then === "function") {
+        button.disabled = true;
+        button.classList.add("tools-action-busy");
+        result.finally(function () {
+          button.disabled = false;
+          button.classList.remove("tools-action-busy");
+        });
+      }
+    }
+
+    function buildActionRow(iconSrc, label, onClick) {
+      const button = createActionButton(iconSrc, label);
       button.addEventListener("click", function () {
-        if (button.disabled) {
+        runRowAction(button, onClick);
+      });
+      return button;
+    }
+
+    // An action row with a flyout submenu of variants. It opens on
+    // hover (CSS, see .tools-action-wrap:hover) and on click of the row
+    // itself, so mouse and touch both work; picking an item runs it
+    // through the same busy-state handling as a plain action row.
+    // With only one variant registered there is nothing to choose, so
+    // the row just runs it and no flyout is shown.
+    function buildSubmenuActionRow(iconSrc, label) {
+      const wrap = document.createElement("div");
+      wrap.className = "tools-action-wrap";
+
+      const button = createActionButton(iconSrc, label);
+      const chevron = document.createElement("span");
+      chevron.className = "tools-action-chevron";
+      chevron.setAttribute("aria-hidden", "true");
+      button.appendChild(chevron);
+      wrap.appendChild(button);
+
+      const menu = document.createElement("div");
+      menu.className = "tools-submenu";
+      wrap.appendChild(menu);
+
+      const items = [];
+
+      function close() {
+        wrap.classList.remove("tools-submenu-open");
+      }
+
+      button.addEventListener("click", function () {
+        if (items.length < 2) {
+          if (items.length === 1) {
+            runRowAction(button, items[0].onClick);
+          }
           return;
         }
-        const result = onClick();
-        if (result && typeof result.then === "function") {
-          button.disabled = true;
-          button.classList.add("tools-action-busy");
-          result.finally(function () {
-            button.disabled = false;
-            button.classList.remove("tools-action-busy");
-          });
-        }
+        wrap.classList.toggle("tools-submenu-open");
       });
+      wrap.addEventListener("mouseleave", close);
 
-      return button;
+      return {
+        row: wrap,
+        addItem: function (itemLabel, onClick) {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "tools-submenu-item";
+          item.textContent = itemLabel;
+          item.addEventListener("click", function () {
+            close();
+            runRowAction(button, onClick);
+          });
+          menu.appendChild(item);
+          items.push({ onClick: onClick });
+          wrap.classList.toggle("tools-action-has-submenu", items.length > 1);
+        },
+      };
     }
 
     function buildOptionRow(type, name, checked, label, onChange) {
@@ -1859,12 +2141,11 @@
           map.fitBounds(homeBounds, { padding: CONFIG.fitBoundsPadding });
         }
       }));
-      actions.appendChild(buildActionRow(CONFIG.icons.downloadPdf, "Download PDF", function () {
-        const context = pdfContextProvider
-          ? pdfContextProvider()
-          : { municipalityText: CONFIG.municipalityName.toUpperCase(), wardText: "", councillorText: "", demoSections: null };
-        return exportWardPdf(map, context);
-      }));
+      pdfRow = buildSubmenuActionRow(CONFIG.icons.downloadPdf, "Download PDF");
+      pdfRow.addItem("Default", function () {
+        return exportWardPdf(map, currentPdfContext());
+      });
+      actions.appendChild(pdfRow.row);
       bodyEl.appendChild(actions);
 
       const basePanel = document.createElement("div");
@@ -1904,6 +2185,20 @@
     // Supplies the per-mode content for the PDF export (see
     // exportWardPdf). `fn` returns the context object each time the
     // Download PDF action runs, so it always reflects current data.
+    // Adds the "Include Voting Station Labels" variant to the Download
+    // PDF submenu. `fn` returns the { lat, lng, name, address } list at
+    // export time, so it reflects whatever station data actually
+    // loaded. Modes without station data simply don't call this, and
+    // the row stays a single-action button.
+    control.enableStationLabelPdf = function (fn) {
+      if (!pdfRow) {
+        return;
+      }
+      pdfRow.addItem("Include Voting Station Labels", function () {
+        return exportWardPdf(map, currentPdfContext(), fn());
+      });
+    };
+
     control.setPdfContext = function (fn) {
       pdfContextProvider = fn;
     };
@@ -2112,6 +2407,12 @@
     return null;
   }
 
+  // Street address as one line, shared by the station popup and the
+  // PDF station labels.
+  function formatStationAddress(station) {
+    return [station.StreetName, station.Suburb, station.Town].filter(Boolean).join(", ");
+  }
+
   function buildStationPopupContent(station, vdNumber) {
     const container = document.createElement("div");
     container.className = "station-popup";
@@ -2124,10 +2425,10 @@
     vdLine.textContent = "VD " + vdNumber;
     container.appendChild(vdLine);
 
-    const addressParts = [station.StreetName, station.Suburb, station.Town].filter(Boolean);
-    if (addressParts.length > 0) {
+    const addressText = formatStationAddress(station);
+    if (addressText) {
       const address = document.createElement("div");
-      address.textContent = addressParts.join(", ");
+      address.textContent = addressText;
       container.appendChild(address);
     }
 
@@ -3313,6 +3614,8 @@
         const vdLayerGroup = L.layerGroup().addTo(map);
         const stationLayerGroup = L.layerGroup().addTo(map);
         const vdEntries = [];
+        // Name + address per station, for the labelled PDF variant.
+        const stationLabelEntries = [];
 
         vdList.slice().sort(function (a, b) {
           return String(a.VDNumber).localeCompare(String(b.VDNumber));
@@ -3348,6 +3651,12 @@
             const marker = createStationMarker(lat, lng).addTo(stationLayerGroup);
             marker.bindPopup(buildStationPopupContent(station, vd.VDNumber));
             stationMarkers.push(marker);
+            stationLabelEntries.push({
+              lat: lat,
+              lng: lng,
+              name: station.Name || "Voting station",
+              address: formatStationAddress(station),
+            });
           });
         });
 
@@ -3358,6 +3667,14 @@
 
         toolsControl.addOverlay(vdLayerGroup, "Voting Districts");
         toolsControl.addOverlay(stationLayerGroup, "Voting Stations");
+
+        if (stationLabelEntries.length > 0) {
+          toolsControl.enableStationLabelPdf(function () {
+            // Nothing to label if the stations themselves have been
+            // switched off in the overlay list.
+            return map.hasLayer(stationLayerGroup) ? stationLabelEntries : [];
+          });
+        }
 
         if (vdList.length === 0) {
           setIecNotice("No voting districts were found for this ward.");
