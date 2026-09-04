@@ -3109,7 +3109,7 @@
      ============================================================= */
 
   function setPageTitle(wardNumber) {
-    document.title = "Stellenbosch Ward " + wardNumber;
+    document.title = "Stellenbosch Ward Explorer \u2014 Ward " + wardNumber;
   }
 
   // The header now shows a static site title; the ward name lives in
@@ -3344,7 +3344,7 @@
     const hoverLabel = context.hoverLabel;
     const outline = context.outline;
 
-    document.title = "Stellenbosch \u2014 All Wards";
+    document.title = "Stellenbosch Ward Explorer \u2014 All Wards";
     setHeading("All Wards");
     setStatusMessage("Loading all ward boundaries\u2026");
 
