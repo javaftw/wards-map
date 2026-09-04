@@ -36,7 +36,10 @@
     </div>
   </div>
 
-  <!-- First-visit disclaimer (shown once per browser session via sessionStorage). -->
+  <!-- Disclaimer, shown once per browser session: the acknowledgement is
+       kept in sessionStorage, so every new tab or window (and every fresh
+       start of the browser) shows it again, while moving between wards
+       within one session does not. -->
   <div id="disclaimer" class="disclaimer-overlay" hidden>
     <div class="disclaimer-card" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
       <div class="disclaimer-header">
@@ -55,6 +58,12 @@
           other data provider. It is a citizen&rsquo;s effort, compiled with
           care from those providers&rsquo; own published data. For anything
           official, please confirm with the relevant authority.</p>
+        <p><strong>Your visit is anonymous.</strong> This site has no accounts,
+          no cookies and no analytics &mdash; nothing you do here is recorded,
+          and nothing about you is sent to us or stored. An address you search
+          for, or your position if you choose &ldquo;Use my location&rdquo;, is
+          sent only to the mapping services that answer the question (and never
+          kept here).</p>
       </div>
       <button type="button" id="disclaimer-continue" class="disclaimer-continue">Continue</button>
     </div>
