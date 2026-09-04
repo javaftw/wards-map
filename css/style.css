@@ -128,8 +128,31 @@ a {
 
 .page-header h1 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   color: #fff;
+}
+
+/* Two stacked lines: the title, with the "unofficial" caveat centred
+   underneath it in small caps. Sized in em so both track the h1's
+   font-size, including the smaller one set in the mobile media query
+   at the bottom of this file. */
+.page-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+
+.page-title-tag {
+  font-size: 0.4em;
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.12em;
+  margin-top: 0.35em;
+  /* A pale tint of the header's navy (#002157) — reads as a quiet
+     aside against the navy band rather than competing with the white
+     title above it. */
+  color: #91a6c6;
 }
 
 .back-link {
@@ -958,7 +981,7 @@ a {
 
 @media (max-width: 480px) {
   .page-header h1 {
-    font-size: 1.1rem;
+    font-size: 1.35rem;
   }
 
   .legend-control {
