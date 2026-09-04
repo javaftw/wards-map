@@ -461,6 +461,9 @@
   // Maroon band: councillor name + phone (single-ward), or just the
   // municipality name (all-wards). Omitted entirely if there's
   // nothing to show (e.g. councillor data failed to load).
+  // Each line is either a plain string or { text, href, className },
+  // the latter rendered as a link (used for the councillor's mailto:
+  // address).
   function buildLegendSubheader(container, lines) {
     if (lines.length === 0) {
       return;
@@ -470,7 +473,18 @@
     lines.forEach(function (line) {
       const el = document.createElement("div");
       el.className = "legend-subheader-line";
-      el.textContent = line;
+      if (typeof line === "string") {
+        el.textContent = line;
+      } else {
+        if (line.className) {
+          el.className += " " + line.className;
+        }
+        const link = document.createElement("a");
+        link.className = "legend-subheader-link";
+        link.href = line.href;
+        link.textContent = line.text;
+        el.appendChild(link);
+      }
       subheader.appendChild(el);
     });
     container.appendChild(subheader);
@@ -543,6 +557,13 @@
       subheaderLines.push(councillor.name);
       if (councillor.phone) {
         subheaderLines.push(councillor.phone);
+      }
+      if (councillor.email) {
+        subheaderLines.push({
+          text: councillor.email,
+          href: "mailto:" + councillor.email,
+          className: "legend-subheader-email",
+        });
       }
     }
     buildLegendSubheader(container, subheaderLines);

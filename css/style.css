@@ -425,6 +425,34 @@ a {
   margin-top: 0.1rem;
 }
 
+/* Addresses are long enough to overflow the 260px legend at the
+   subheader's own size, so they get their own smaller size and are
+   allowed to wrap mid-address. */
+.legend-subheader-email {
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+/* The site's gold accent (#d7b468, as on the disclaimer's top border
+   and the PDF header rule), going white on hover/active for contrast
+   against the maroon subheader band.
+   Qualified with .legend-control deliberately: Leaflet's own
+   stylesheet sets `.leaflet-container a { color: #0078A8 }`, which
+   outranks a lone class selector and would otherwise paint this link
+   its default blue. */
+.legend-control .legend-subheader-link {
+  color: #d7b468;
+  text-decoration: underline;
+}
+
+.legend-control .legend-subheader-link:hover,
+.legend-control .legend-subheader-link:focus,
+.legend-control .legend-subheader-link:active {
+  color: #fff;
+}
+
 .legend-body {
   padding: 0.6rem 0.9rem 0.7rem;
   background: #fff;
