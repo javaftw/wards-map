@@ -102,7 +102,7 @@
       // is drawn *over* the VD outlines it coincides with. It has to
       // be heavier than `weight` so it reads as the enclosing
       // boundary rather than as one more VD edge.
-      wardOutlineWeight: 6,
+      wardOutlineWeight: 4,
     },
   };
 
