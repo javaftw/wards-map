@@ -63,6 +63,19 @@
       baseUrl: "https://api.elections.org.za/IECGIS/api/",
     },
 
+    // Address lookup for the "Find my ward" control. Nominatim is
+    // OpenStreetMap's own geocoder: no key, CORS-enabled, but its usage
+    // policy rules out bulk and type-ahead traffic — hence one request
+    // per explicit user action, never one per keystroke. `viewbox`
+    // (west,north,east,south) is the municipality's rough extent, used
+    // to restrict the first attempt and bias the second.
+    geocode: {
+      url: "https://nominatim.openstreetmap.org/search",
+      viewbox: "18.60,-33.70,19.20,-34.15",
+      countryCodes: "za",
+      limit: 5,
+    },
+
     dataUrls: {
       councillors: "js/councillors.json",
       demographics: "js/demographics.json",
@@ -146,6 +159,25 @@
     return { valid: true, mode: "single", wardNumber: wardNumber };
   }
 
+  // Optional `at=lat,lng` parameter: the point a "Find my ward" search
+  // resolved, carried across the navigation so the ward page can mark
+  // it. Ignored unless both halves are finite and in range.
+  function parseAtParam(raw) {
+    if (!raw) {
+      return null;
+    }
+    const parts = String(raw).split(",");
+    if (parts.length !== 2) {
+      return null;
+    }
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      return null;
+    }
+    return { lat: lat, lng: lng };
+  }
+
   /* =============================================================
      3. REST QUERYING (MDB + IEC)
      ============================================================= */
@@ -204,6 +236,116 @@
 
   function fetchAllWardsGeoJSON() {
     return queryWardLayer(municipalityWhere());
+  }
+
+  // Which ward contains a point? Asked of the boundary service itself
+  // (a point-intersects query for attributes only), so nothing has to
+  // be downloaded or tested locally and the answer comes from the same
+  // authoritative source the map is drawn from. Returns the integer
+  // WardNo, or null when the point falls outside the municipality.
+  async function fetchWardAtPoint(lat, lng) {
+    const url = new URL(CONFIG.wardLayerUrl + "/query");
+    url.searchParams.set("where", municipalityWhere());
+    url.searchParams.set(
+      "geometry",
+      JSON.stringify({ x: lng, y: lat, spatialReference: { wkid: 4326 } })
+    );
+    url.searchParams.set("geometryType", "esriGeometryPoint");
+    url.searchParams.set("inSR", "4326");
+    url.searchParams.set("spatialRel", "esriSpatialRelIntersects");
+    url.searchParams.set("outFields", "WardNo");
+    url.searchParams.set("returnGeometry", "false");
+    url.searchParams.set("f", "json");
+
+    let response;
+    try {
+      response = await fetch(url.toString());
+    } catch (networkErr) {
+      throw new Error("network");
+    }
+    if (!response.ok) {
+      throw new Error("network");
+    }
+
+    let payload;
+    try {
+      payload = await response.json();
+    } catch (parseErr) {
+      throw new Error("badResponse");
+    }
+    if (payload && payload.error) {
+      throw new Error("badResponse");
+    }
+
+    const features = (payload && payload.features) || [];
+    if (features.length === 0) {
+      return null;
+    }
+    const wardNo = Number((features[0].attributes || {}).WardNo);
+    return isFinite(wardNo) ? wardNo : null;
+  }
+
+  // Nominatim's display_name runs all the way up to "…, Western Cape,
+  // 7599, South Africa", which is far too long for a result button —
+  // the leading parts are the ones that distinguish one match from
+  // another. The full string is kept for the button's tooltip.
+  function shortenPlaceName(displayName) {
+    if (!displayName) {
+      return "";
+    }
+    return displayName.split(",").slice(0, 3).join(",").trim();
+  }
+
+  // Address string -> [{ label, fullLabel, lat, lng }]. Searches within the
+  // municipality first and only widens to the rest of South Africa if
+  // that finds nothing, so a distant or mistyped address still returns
+  // something the ward lookup can reject with a clear message.
+  async function geocodeAddress(query) {
+    async function run(bounded) {
+      const url = new URL(CONFIG.geocode.url);
+      url.searchParams.set("q", query);
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("limit", String(CONFIG.geocode.limit));
+      url.searchParams.set("countrycodes", CONFIG.geocode.countryCodes);
+      url.searchParams.set("viewbox", CONFIG.geocode.viewbox);
+      if (bounded) {
+        url.searchParams.set("bounded", "1");
+      }
+
+      let response;
+      try {
+        response = await fetch(url.toString());
+      } catch (networkErr) {
+        throw new Error("geocodeNetwork");
+      }
+      if (!response.ok) {
+        throw new Error("geocodeNetwork");
+      }
+      let payload;
+      try {
+        payload = await response.json();
+      } catch (parseErr) {
+        throw new Error("geocodeBadResponse");
+      }
+      return Array.isArray(payload) ? payload : [];
+    }
+
+    let results = await run(true);
+    if (results.length === 0) {
+      results = await run(false);
+    }
+    return results
+      .map(function (r) {
+        return {
+          label: shortenPlaceName(r.display_name) || query,
+          fullLabel: r.display_name || query,
+          lat: parseFloat(r.lat),
+          lng: parseFloat(r.lon),
+        };
+      })
+      .filter(function (r) {
+        return isFinite(r.lat) && isFinite(r.lng);
+      });
   }
 
   function buildVotingDistrictsByWardUrl(wardNumber) {
@@ -1907,6 +2049,280 @@
     };
   }
 
+  /* -------------------------------------------------------------
+     "Find my ward" control (top-left, under the Tools box)
+     Address search plus browser geolocation, resolved to a ward by the
+     boundary service itself (fetchWardAtPoint). Two deliberate
+     choices: nothing is looked up until the user submits (Nominatim's
+     usage policy rules out type-ahead traffic), and the located point
+     is always marked on the map, so the answer can be checked against
+     the boundary rather than merely trusted.
+     ------------------------------------------------------------- */
+  function createFindWardControl(map) {
+    const control = L.control({ position: "topleft" });
+    let currentWardNumber = null;
+    let containerEl = null;
+    let inputEl = null;
+    let searchButton = null;
+    let locateButton = null;
+    let statusEl = null;
+    let resultsEl = null;
+    let marker = null;
+    let collapsed = false;
+
+    function setStatus(text) {
+      if (!statusEl) {
+        return;
+      }
+      statusEl.textContent = text || "";
+      statusEl.hidden = !text;
+    }
+
+    function clearResults() {
+      if (!resultsEl) {
+        return;
+      }
+      while (resultsEl.firstChild) {
+        resultsEl.removeChild(resultsEl.firstChild);
+      }
+      resultsEl.hidden = true;
+    }
+
+    function setBusy(busy) {
+      if (searchButton) {
+        searchButton.disabled = busy;
+      }
+      if (locateButton) {
+        locateButton.disabled = busy;
+      }
+    }
+
+    function markPoint(lat, lng, label, moveView) {
+      if (marker) {
+        map.removeLayer(marker);
+      }
+      marker = L.marker([lat, lng], {
+        icon: L.divIcon({ className: "find-marker-icon", iconSize: [18, 18], iconAnchor: [9, 9] }),
+        keyboard: false,
+      }).addTo(map);
+      if (label) {
+        marker.bindPopup(label);
+      }
+      if (moveView) {
+        map.setView([lat, lng], Math.max(map.getZoom(), 15));
+        if (label) {
+          marker.openPopup();
+        }
+      }
+      return marker;
+    }
+
+    function renderFound(wardNumber, lat, lng) {
+      clearResults();
+      if (currentWardNumber === wardNumber) {
+        setStatus("That location is in this ward (Ward " + wardNumber + ").");
+        return;
+      }
+      setStatus("That location is in Ward " + wardNumber + ".");
+      const open = document.createElement("button");
+      open.type = "button";
+      open.className = "find-open";
+      open.textContent = "Open Ward " + wardNumber;
+      open.addEventListener("click", function () {
+        window.location.href =
+          "index.html?ward=" + wardNumber + "&at=" + lat.toFixed(6) + "," + lng.toFixed(6);
+      });
+      resultsEl.hidden = false;
+      resultsEl.appendChild(open);
+    }
+
+    async function resolvePoint(lat, lng, label) {
+      markPoint(lat, lng, label, true);
+      setBusy(true);
+      setStatus("Checking the ward boundary\u2026");
+      try {
+        const wardNumber = await fetchWardAtPoint(lat, lng);
+        if (wardNumber === null) {
+          clearResults();
+          setStatus("That location is outside " + CONFIG.municipalityName + " Municipality.");
+          return;
+        }
+        renderFound(wardNumber, lat, lng);
+      } catch (err) {
+        console.warn("Ward lookup failed:", err);
+        clearResults();
+        setStatus("The ward boundary service didn't respond. Please try again.");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    // More than one match: let the user pick, since a bare street name
+    // can land anywhere in the country.
+    function renderCandidates(candidates) {
+      clearResults();
+      resultsEl.hidden = false;
+      candidates.forEach(function (candidate) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "find-result";
+        item.textContent = candidate.label;
+        item.title = candidate.fullLabel || candidate.label;
+        item.addEventListener("click", function () {
+          clearResults();
+          resolvePoint(candidate.lat, candidate.lng, candidate.label);
+        });
+        resultsEl.appendChild(item);
+      });
+      setStatus("Did you mean:");
+    }
+
+    async function runSearch() {
+      const query = (inputEl.value || "").trim();
+      if (query.length < 3) {
+        clearResults();
+        setStatus("Type at least three characters.");
+        return;
+      }
+      clearResults();
+      setBusy(true);
+      setStatus("Searching\u2026");
+      try {
+        const candidates = await geocodeAddress(query);
+        if (candidates.length === 0) {
+          setStatus("No match found. Try adding a suburb or town.");
+          return;
+        }
+        if (candidates.length === 1) {
+          await resolvePoint(candidates[0].lat, candidates[0].lng, candidates[0].label);
+          return;
+        }
+        renderCandidates(candidates);
+      } catch (err) {
+        console.warn("Address lookup failed:", err);
+        setStatus("Address lookup is unavailable right now. Please try again.");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function runLocate() {
+      if (!navigator.geolocation) {
+        clearResults();
+        setStatus("This browser can't share your location.");
+        return;
+      }
+      clearResults();
+      setBusy(true);
+      setStatus("Getting your location\u2026");
+      navigator.geolocation.getCurrentPosition(
+        function (position) {
+          setBusy(false);
+          resolvePoint(position.coords.latitude, position.coords.longitude, "Your location");
+        },
+        function (err) {
+          setBusy(false);
+          setStatus(
+            err && err.code === 1
+              ? "Location permission was denied."
+              : "Couldn't get your location. Try searching for an address instead."
+          );
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    }
+
+    control.onAdd = function () {
+      containerEl = L.DomUtil.create("div", "find-control");
+      L.DomEvent.disableClickPropagation(containerEl);
+      L.DomEvent.disableScrollPropagation(containerEl);
+
+      const header = document.createElement("div");
+      header.className = "find-header";
+      const toggleIcon = document.createElement("span");
+      toggleIcon.className = "find-header-toggle";
+      toggleIcon.setAttribute("aria-hidden", "true");
+      header.appendChild(toggleIcon);
+      const headerLabel = document.createElement("span");
+      headerLabel.className = "find-header-label";
+      headerLabel.textContent = "Find my ward";
+      header.appendChild(headerLabel);
+      header.addEventListener("click", function () {
+        collapsed = !collapsed;
+        containerEl.classList.toggle("find-collapsed", collapsed);
+      });
+      containerEl.appendChild(header);
+
+      const body = document.createElement("div");
+      body.className = "find-body";
+
+      const form = document.createElement("form");
+      form.className = "find-form";
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        runSearch();
+      });
+
+      inputEl = document.createElement("input");
+      inputEl.type = "search";
+      inputEl.className = "find-input";
+      inputEl.placeholder = "Street address or place";
+      inputEl.setAttribute("aria-label", "Street address or place");
+      form.appendChild(inputEl);
+
+      searchButton = document.createElement("button");
+      searchButton.type = "submit";
+      searchButton.className = "find-search";
+      searchButton.textContent = "Search";
+      form.appendChild(searchButton);
+      body.appendChild(form);
+
+      locateButton = document.createElement("button");
+      locateButton.type = "button";
+      locateButton.className = "find-locate";
+      locateButton.textContent = "Use my location";
+      locateButton.addEventListener("click", runLocate);
+      body.appendChild(locateButton);
+
+      statusEl = document.createElement("div");
+      statusEl.className = "find-status";
+      statusEl.setAttribute("role", "status");
+      statusEl.setAttribute("aria-live", "polite");
+      statusEl.hidden = true;
+      body.appendChild(statusEl);
+
+      resultsEl = document.createElement("div");
+      resultsEl.className = "find-results";
+      resultsEl.hidden = true;
+      body.appendChild(resultsEl);
+
+      containerEl.appendChild(body);
+      return containerEl;
+    };
+
+    // Lets single-ward mode say "in this ward" rather than offering a
+    // link to the page the user is already on.
+    control.setCurrentWard = function (wardNumber) {
+      currentWardNumber = wardNumber;
+    };
+
+    control.setCollapsed = function (next) {
+      collapsed = next;
+      if (containerEl) {
+        containerEl.classList.toggle("find-collapsed", collapsed);
+      }
+    };
+
+    // Used for the `at` URL parameter, which carries the searched point
+    // across the navigation to a ward page. The view isn't moved: the
+    // ward's own fitBounds should still frame the whole ward.
+    control.markPoint = function (lat, lng, label) {
+      markPoint(lat, lng, label, false);
+    };
+
+    return control;
+  }
+
   // Custom top-left "Tools" control — replaces Leaflet's default
   // zoom control and the native layers control entirely, so all
   // layer-visibility toggling below goes through map.addLayer()/
@@ -2289,10 +2705,18 @@
 
     const outline = createOutlineController();
     const toolsControl = createToolsControl(map, base, outline).addTo(map);
+    const findControl = createFindWardControl(map).addTo(map);
     const legend = createLegendControl().addTo(map);
     const hoverLabel = createHoverLabelMarker(map);
 
-    return { map: map, toolsControl: toolsControl, legend: legend, hoverLabel: hoverLabel, outline: outline };
+    return {
+      map: map,
+      toolsControl: toolsControl,
+      legend: legend,
+      hoverLabel: hoverLabel,
+      outline: outline,
+      findControl: findControl,
+    };
   }
 
   /* =============================================================
@@ -3945,9 +4369,19 @@
     showMapArea(true);
     const context = createMap();
 
+    const at = parseAtParam(new URLSearchParams(window.location.search).get("at"));
+    if (at) {
+      context.findControl.markPoint(at.lat, at.lng, "Searched location");
+    }
+
     if (validation.mode === "all") {
       await runAllWardsMode(context);
     } else {
+      // On a ward page the box starts collapsed — the visitor has
+      // already found their ward, and the map area matters more there
+      // than on the all-wards page, where finding one is the point.
+      context.findControl.setCurrentWard(validation.wardNumber);
+      context.findControl.setCollapsed(true);
       await runSingleWardMode(validation.wardNumber, context);
     }
   }

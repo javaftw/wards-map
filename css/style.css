@@ -789,6 +789,152 @@ a {
   cursor: pointer;
 }
 
+/* ---------- "Find my ward" control (top-left, under Tools) ----------
+   Same card language as the Tools box: maroon shell, white header row,
+   white inner controls. */
+.find-control {
+  width: 260px;
+  max-width: 85vw;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  background: #971a32;
+}
+
+.find-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 10px 10px 0 0;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* CSS-drawn chevron, rotating with the collapsed state — same trick as
+   the Tools and Ward Insights headers. */
+.find-header-toggle {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid currentColor;
+  transition: transform 0.15s ease;
+}
+
+.find-collapsed .find-header-toggle {
+  transform: rotate(-90deg);
+}
+
+.find-collapsed .find-body {
+  display: none;
+}
+
+.find-body {
+  padding: 0 0.8rem 0.6rem;
+}
+
+.find-form {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.find-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.3rem 0.45rem;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.find-search,
+.find-locate,
+.find-open,
+.find-result {
+  background: rgba(255, 255, 255, 0.16);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.find-search {
+  padding: 0.3rem 0.6rem;
+  flex: 0 0 auto;
+}
+
+.find-locate,
+.find-open {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.32rem 0.5rem;
+  text-align: center;
+}
+
+.find-open {
+  background: #fff;
+  color: #971a32;
+  font-weight: 700;
+}
+
+.find-result {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.3rem 0.45rem;
+  text-align: left;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.find-search:hover,
+.find-locate:hover,
+.find-result:hover,
+.find-search:focus,
+.find-locate:focus,
+.find-result:focus {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.find-open:hover,
+.find-open:focus {
+  background: #f2e6d5;
+}
+
+.find-search:disabled,
+.find-locate:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.find-status {
+  margin-top: 0.4rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* The point a search resolved to. Navy against the maroon voting-station
+   markers, so the two can't be confused. */
+.find-marker-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #002157;
+  border: 3px solid #fff;
+}
+
 /* ---------- Action row with a variant flyout (Download PDF) ----------
    The wrapper is the hover target and the positioning context for the
    flyout, which sits directly against the row's right edge (no gap, so
