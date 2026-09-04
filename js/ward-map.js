@@ -89,10 +89,20 @@
       weight: 3,
       fillOpacity: 0.25,
       hoverFillOpacity: 0.55,
-      // VDs start more transparent than wards and become less
-      // transparent on hover (mirrors the ward-hover treatment).
-      vdFillOpacity: 0.12,
+      // On the single-ward map the VD polygons tile the ward exactly,
+      // so a VD fill would just sit on top of the ward fill and every
+      // VD outline would coincide with a neighbour's (or with the
+      // ward boundary). VDs are therefore drawn as outlines only —
+      // the fill appears on hover, which is what makes the hovered
+      // district stand out. See renderSingleWard for the matching
+      // two-layer ward treatment.
+      vdFillOpacity: 0,
       vdHoverFillOpacity: 0.4,
+      // Weight of the ward boundary on the single-ward map, where it
+      // is drawn *over* the VD outlines it coincides with. It has to
+      // be heavier than `weight` so it reads as the enclosing
+      // boundary rather than as one more VD edge.
+      wardOutlineWeight: 6,
     },
   };
 
@@ -1936,6 +1946,16 @@
     const stationsPane = map.createPane("stationsPane");
     stationsPane.style.zIndex = 450;
 
+    // The single-ward map's ward boundary is drawn over the VD
+    // outlines, in its own pane above the default overlayPane the
+    // ward fill and the VDs share. Its canvas covers the whole map
+    // and (see the stationsPane note above) would swallow every
+    // hover and click on the VDs underneath, so the pane is made
+    // click-through — nothing in it is interactive anyway.
+    const wardOutlinePane = map.createPane("wardOutlinePane");
+    wardOutlinePane.style.zIndex = 420;
+    wardOutlinePane.style.pointerEvents = "none";
+
     const base = createBaseLayers();
     base.osm.addTo(map);
 
@@ -1962,6 +1982,33 @@
         opacity: 1,
         fillColor: CONFIG.styles.ward.color,
         fillOpacity: CONFIG.styles.fillOpacity,
+      };
+    };
+  }
+
+  // The single-ward map draws the ward polygon twice: this fill-only
+  // copy underneath everything, and an outline-only copy (next
+  // function) on top of the VD layer. Splitting them is what keeps the ward
+  // boundary visible — VD outlines run along the same pixels, so a
+  // single ward polygon painted under them would have its boundary
+  // completely covered.
+  function makeWardFillStyle() {
+    return function () {
+      return {
+        stroke: false,
+        fillColor: CONFIG.styles.ward.color,
+        fillOpacity: CONFIG.styles.fillOpacity,
+      };
+    };
+  }
+
+  function makeWardOutlineStyle(outline) {
+    return function () {
+      return {
+        color: outline.currentWardColor(),
+        weight: CONFIG.styles.wardOutlineWeight,
+        opacity: 1,
+        fill: false,
       };
     };
   }
@@ -3013,12 +3060,27 @@
     });
   }
 
+  // Adds/removes the pulse class on a voting district's station
+  // markers. A marker only has a DOM element while it is on the map,
+  // so this is a no-op for stations hidden via the Tools overlay
+  // toggle.
+  function setStationPulse(stationMarkers, on) {
+    (stationMarkers || []).forEach(function (marker) {
+      const el = marker.getElement();
+      if (el) {
+        el.classList.toggle("station-marker-pulsing", on);
+      }
+    });
+  }
+
   // Single-ward map: hovering a voting district makes it less
-  // transparent, shows a mouse-following "VD N" tooltip, and hides
-  // the default VD labels.
-  function attachVdHoverBehavior(layer, vdNumber, hoverLabel, labelController) {
+  // transparent, shows a mouse-following "VD N" tooltip, hides the
+  // default VD labels, and pulses the district's own voting-station
+  // markers so the pairing is obvious.
+  function attachVdHoverBehavior(layer, vdNumber, hoverLabel, labelController, stationMarkers) {
     layer.on("mouseover", function () {
       layer.setStyle({ fillOpacity: CONFIG.styles.vdHoverFillOpacity });
+      setStationPulse(stationMarkers, true);
       labelController.suppress();
       showHoverLabelWith(hoverLabel, function (el) {
         buildVdHoverContent(el, vdNumber);
@@ -3029,6 +3091,7 @@
     });
     layer.on("mouseout", function () {
       layer.setStyle({ fillOpacity: CONFIG.styles.vdFillOpacity });
+      setStationPulse(stationMarkers, false);
       hideHoverLabel(hoverLabel);
       labelController.resume();
     });
@@ -3139,8 +3202,16 @@
       const geojson = await mdbPromise;
 
       const wardLayerGroup = L.layerGroup().addTo(map);
-      const wardPolygon = L.geoJSON(geojson, { style: makeWardStyle(outline) }).addTo(wardLayerGroup);
-      outline.registerWard(wardPolygon);
+      // Two copies of the same boundary (see makeWardFillStyle): the
+      // fill sits under the VD layer, the outline over it, so the
+      // ward boundary stays legible where VD edges run along it.
+      const wardPolygon = L.geoJSON(geojson, { style: makeWardFillStyle() }).addTo(wardLayerGroup);
+      const wardOutlinePolygon = L.geoJSON(geojson, {
+        style: makeWardOutlineStyle(outline),
+        pane: "wardOutlinePane",
+        interactive: false,
+      }).addTo(wardLayerGroup);
+      outline.registerWard(wardOutlinePolygon);
 
       const bounds = wardPolygon.getBounds();
       if (!bounds.isValid()) {
@@ -3213,6 +3284,9 @@
           return String(a.VDNumber).localeCompare(String(b.VDNumber));
         }).forEach(function (vd) {
           const geojsonGeom = convertIecGeometryToGeoJSON(vd.Geometry);
+          // The district's own station markers, so hovering the
+          // district can pulse them (attachVdHoverBehavior).
+          const stationMarkers = [];
           if (geojsonGeom) {
             const vdPolygon = L.geoJSON(geojsonGeom, { style: makeVdStyle(outline) }).addTo(vdLayerGroup);
             outline.registerVd(vdPolygon);
@@ -3226,6 +3300,7 @@
                 layer: vdPolygon,
                 geometry: geojsonGeom,
                 vdNumber: vd.VDNumber,
+                stationMarkers: stationMarkers,
               });
             }
           }
@@ -3238,12 +3313,13 @@
             }
             const marker = createStationMarker(lat, lng).addTo(stationLayerGroup);
             marker.bindPopup(buildStationPopupContent(station, vd.VDNumber));
+            stationMarkers.push(marker);
           });
         });
 
         const vdLabelController = createLabelController(map, vdEntries);
         vdEntries.forEach(function (entry) {
-          attachVdHoverBehavior(entry.layer, entry.vdNumber, hoverLabel, vdLabelController);
+          attachVdHoverBehavior(entry.layer, entry.vdNumber, hoverLabel, vdLabelController, entry.stationMarkers);
         });
 
         toolsControl.addOverlay(vdLayerGroup, "Voting Districts");

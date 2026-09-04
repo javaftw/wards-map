@@ -225,8 +225,9 @@ a {
    circleMarker; see createStationMarker() in ward-map.js for why.
    Colour matches CONFIG.styles.station.color — keep in sync. */
 .station-marker-icon {
-  width: 16px;
-  height: 16px;
+  --station-marker-size: 16px;
+  width: var(--station-marker-size);
+  height: var(--station-marker-size);
   border-radius: 50%;
   background: #971a32;
   border: 3px solid #fff;
@@ -234,6 +235,59 @@ a {
      html2canvas weak point (see the PDF export fixes above), and
      unlike the legend/tools cards this marker isn't hidden during
      capture, so it would show the same grey-artifact bug on export. */
+}
+
+/* Expanding ring used for the hover pulse: a copy of the marker's own
+   white outline, sitting exactly on top of it and invisible until the
+   pulse class is added (see setStationPulse). Kept as a pseudo-element
+   so the marker itself — and the popup anchored to it — is unaffected
+   by the animation's transform. */
+.station-marker-icon::after {
+  content: "";
+  position: absolute;
+  /* Two things conspire to push this ring off-centre if left alone:
+     an absolutely positioned child is offset from its parent's
+     *padding* box (inside the marker's 3px white border), and the
+     `* { box-sizing: border-box }` rule at the top of this file does
+     not match pseudo-elements, so the ring's own 3px border would be
+     added *outside* its declared size. Hence border-box here plus
+     explicit centring — the animation scales about the ring's own
+     centre, so the ring has to start exactly on the marker. */
+  box-sizing: border-box;
+  left: 50%;
+  top: 50%;
+  width: var(--station-marker-size);
+  height: var(--station-marker-size);
+  margin-left: calc(var(--station-marker-size) / -2);
+  margin-top: calc(var(--station-marker-size) / -2);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* One 0.5s cycle per pulse, repeating for as long as the pointer stays
+   inside the associated voting district. */
+.station-marker-icon.station-marker-pulsing::after {
+  animation: station-marker-pulse 0.5s linear infinite;
+}
+
+@keyframes station-marker-pulse {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-marker-icon.station-marker-pulsing::after {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 /* ---------- Default feature labels (ward names on the all-wards
