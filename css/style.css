@@ -260,7 +260,10 @@ a {
   height: var(--station-marker-size);
   margin-left: calc(var(--station-marker-size) / -2);
   margin-top: calc(var(--station-marker-size) / -2);
-  border: 3px solid #fff;
+  /* Deliberately a touch heavier than the marker's own 3px outline —
+     the ring loses weight fast as it scales up and fades out, so
+     matching the marker exactly reads as too faint to notice. */
+  border: 4px solid #fff;
   border-radius: 50%;
   opacity: 0;
   pointer-events: none;
