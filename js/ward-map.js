@@ -2226,8 +2226,18 @@
     return match;
   }
 
-  function directionsUrl(lat, lng) {
-    return "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lng;
+  // Both ends are given explicitly. Without an `origin` Google falls
+  // back to guessing where the visitor is — on a desktop that means IP
+  // geolocation, which can be a different city, and the resulting route
+  // makes the destination look wrong too. `from` is the point the
+  // search or geolocation just resolved, which is exactly the start the
+  // visitor means.
+  function directionsUrl(from, to) {
+    return (
+      "https://www.google.com/maps/dir/?api=1" +
+      "&origin=" + from.lat.toFixed(6) + "," + from.lng.toFixed(6) +
+      "&destination=" + to.lat.toFixed(6) + "," + to.lng.toFixed(6)
+    );
   }
 
   /* -------------------------------------------------------------
@@ -2342,7 +2352,7 @@
       return vdCacheByWard[wardNumber];
     }
 
-    function renderStation(el, record, distance) {
+    function renderStation(el, record, distance, from) {
       votingLine(el, record.name, "find-voting-name");
       const detail = [record.address, formatDistance(distance)].filter(Boolean).join(" \u00b7 ");
       if (detail) {
@@ -2350,7 +2360,7 @@
       }
       const link = el.appendChild(document.createElement("a"));
       link.className = "find-open";
-      link.href = directionsUrl(record.lat, record.lng);
+      link.href = directionsUrl(from, record);
       link.target = "_blank";
       link.rel = "noopener";
       link.textContent = "Get directions";
@@ -2383,7 +2393,7 @@
       if (own) {
         votingLine(el, "Voting district " + vd.VDNumber, "find-voting-head");
         votingLine(el, "You vote at", "find-voting-status");
-        renderStation(el, own.record, own.distance);
+        renderStation(el, own.record, own.distance, { lat: lat, lng: lng });
         if (nearest && nearest.record.name !== own.record.name && nearest.distance < own.distance) {
           votingLine(
             el,
@@ -2397,7 +2407,7 @@
 
       if (nearest) {
         votingLine(el, "Closest voting station", "find-voting-head");
-        renderStation(el, nearest.record, nearest.distance);
+        renderStation(el, nearest.record, nearest.distance, { lat: lat, lng: lng });
         votingLine(
           el,
           "This point didn't fall inside a mapped voting district, so this is the nearest station rather than necessarily yours.",
