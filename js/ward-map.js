@@ -1,3 +1,22 @@
+/*
+   Ward Explorer — an interactive map of the electoral wards of
+   Stellenbosch Municipality.
+   Copyright (C) 2026 Hennie Kotze
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+   Affero General Public License (LICENSE in this repository, or
+   <https://www.gnu.org/licenses/>) for more details.
+
+   Source: https://github.com/javaftw/wards-map
+*/
+
 /* -----------------------------------------------------------
    Stellenbosch Ward Map
    Single reusable map page. The `ward` URL query parameter picks
@@ -74,6 +93,18 @@
       viewbox: "18.60,-33.70,19.20,-34.15",
       countryCodes: "za",
       limit: 5,
+    },
+
+    // Authorship and licence, shown in the map's attribution box and on
+    // the exported PDF. The source link isn't only a courtesy: the AGPL
+    // asks that people who use the site over a network be offered its
+    // corresponding source, and this is where that offer lives.
+    credit: {
+      author: "Hennie Kotze",
+      year: "2026",
+      licence: "AGPL-3.0",
+      sourceUrl: "https://github.com/javaftw/wards-map",
+      sourceLabel: "github.com/javaftw/wards-map",
     },
 
     dataUrls: {
@@ -546,9 +577,26 @@
       lines.forEach(function (text) {
         el.appendChild(document.createElement("div")).textContent = text;
       });
+
+      const creditLine = el.appendChild(document.createElement("div"));
+      creditLine.className = "data-attribution-credit";
+      creditLine.appendChild(document.createTextNode(creditPrefix() + " \u00b7 "));
+      const sourceLink = document.createElement("a");
+      sourceLink.href = CONFIG.credit.sourceUrl;
+      sourceLink.target = "_blank";
+      sourceLink.rel = "noopener";
+      sourceLink.textContent = CONFIG.credit.licence + " source";
+      creditLine.appendChild(sourceLink);
+
       return el;
     };
     return control;
+  }
+
+  // "Ward Explorer © 2026 <author>" — shared by the on-map attribution
+  // and the PDF's.
+  function creditPrefix() {
+    return "Ward Explorer \u00a9 " + CONFIG.credit.year + " " + CONFIG.credit.author;
   }
 
   function hexWithAlpha(hex, alpha) {
@@ -1728,6 +1776,9 @@
     if (hasDemo) {
       lines.push("Demographics: Stellenbosch Municipality");
     }
+    lines.push(
+      creditPrefix() + " \u00b7 " + CONFIG.credit.licence + " \u00b7 " + CONFIG.credit.sourceLabel
+    );
     lines.forEach(function (text) {
       box.appendChild(document.createElement("div")).textContent = text;
     });

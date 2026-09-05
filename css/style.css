@@ -1,3 +1,22 @@
+/*
+   Ward Explorer — an interactive map of the electoral wards of
+   Stellenbosch Municipality.
+   Copyright (C) 2026 Hennie Kotze
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+   Affero General Public License (LICENSE in this repository, or
+   <https://www.gnu.org/licenses/>) for more details.
+
+   Source: https://github.com/javaftw/wards-map
+*/
+
 /* -----------------------------------------------------------
    Stellenbosch Ward Map — styling for the single index.html map
    page (?ward=N for one ward, ?ward=all or no param for all wards).
@@ -504,6 +523,20 @@ a {
   line-height: 1.35;
   color: #333;
   max-width: 60vw;
+}
+
+/* Authorship + licence line, set apart from the data-source credits
+   above it. The link is qualified with .data-attribution so Leaflet's
+   own `.leaflet-container a` colour doesn't override it. */
+.data-attribution-credit {
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.data-attribution .data-attribution-credit a {
+  color: #002157;
+  text-decoration: underline;
 }
 
 /* ---------- Ward Insights control (all-wards, top-right) ----------
