@@ -79,6 +79,13 @@ python3 -m http.server 8000   # then open http://localhost:8000/
 
 Leaflet, html2canvas and jsPDF load from CDNs; there are no local dependencies.
 
+## Questions, corrections, ideas
+
+Spotted a boundary that looks wrong, a councillor's details out of date, or
+something the map should do? Please
+[open an issue](https://github.com/javaftw/wards-map/issues) — corrections to the
+bundled data are especially welcome.
+
 ## Licence
 
 Copyright © 2026 Hennie Kotze.
