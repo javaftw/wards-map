@@ -27,6 +27,12 @@ of census pie charts.
 **Find my ward** — search an address or use your device's location, and the map
 tells you which ward the point falls in and takes you there.
 
+**Where do I vote?** — the same lookup names the voting district the point falls
+inside and the station serving it, with the address, the distance and a directions
+link. The station is chosen by which district actually contains the point, not by
+which one is closest: near a boundary those differ, and the closest station often
+serves someone else's district.
+
 **Download PDF** — an A4-landscape sheet composed for the ward (not a screenshot):
 branded header, demographics column, and the map. Optionally with every voting
 station labelled by name and address.
