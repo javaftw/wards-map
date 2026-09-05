@@ -961,6 +961,68 @@ a {
   font-weight: 600;
 }
 
+/* Voting-district / station answer, set on a white card inside the
+   maroon body so it reads as the result rather than as more chrome. */
+.find-voting {
+  margin-top: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  background: #fff;
+  border-radius: 6px;
+  color: var(--color-text);
+  font-size: 0.8rem;
+}
+
+.find-voting:empty {
+  display: none;
+}
+
+.find-voting-head {
+  color: #971a32;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.find-voting-name {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.find-voting-detail {
+  color: var(--color-muted);
+  line-height: 1.25;
+}
+
+.find-voting-status {
+  color: var(--color-muted);
+}
+
+.find-voting-note {
+  margin-top: 0.3rem;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+/* The directions link reuses the .find-open button look, but sits on
+   white here, so it needs the maroon-on-white treatment spelled out —
+   and qualified past Leaflet's own `.leaflet-container a` colour. */
+.find-voting a.find-open {
+  display: block;
+  margin-top: 0.35rem;
+  padding: 0.28rem 0.5rem;
+  background: #971a32;
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+}
+
+.find-voting a.find-open:hover,
+.find-voting a.find-open:focus {
+  background: #7a1428;
+}
+
 /* The point a search resolved to. Navy against the maroon voting-station
    markers, so the two can't be confused. */
 .find-marker-icon {

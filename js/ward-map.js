@@ -2100,6 +2100,136 @@
     };
   }
 
+  /* ---- Geometry helpers for the voting-station lookup ----
+     Where you vote is decided by the voting district you fall inside,
+     not by which station happens to be closest — a station a street
+     away can belong to another VD. So the lookup is a point-in-polygon
+     test against the IEC's own VD geometry, with distance used only to
+     describe the answer (and as a fallback if no VD matches). */
+
+  // Ray casting on the [lng, lat] ring, counting crossings to the east.
+  function pointInRing(lat, lng, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0];
+      const yi = ring[i][1];
+      const xj = ring[j][0];
+      const yj = ring[j][1];
+      const straddles = yi > lat !== yj > lat;
+      if (straddles && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  // Flattens whatever convertIecGeometryToGeoJSON produced (a geometry,
+  // a Feature or a FeatureCollection) into a list of polygons, each a
+  // list of rings: outer ring first, holes after.
+  function collectPolygons(geojson) {
+    if (!geojson) {
+      return [];
+    }
+    if (geojson.type === "FeatureCollection") {
+      return (geojson.features || []).reduce(function (acc, feature) {
+        return acc.concat(collectPolygons(feature));
+      }, []);
+    }
+    if (geojson.type === "Feature") {
+      return collectPolygons(geojson.geometry);
+    }
+    if (geojson.type === "Polygon") {
+      return [geojson.coordinates || []];
+    }
+    if (geojson.type === "MultiPolygon") {
+      return geojson.coordinates || [];
+    }
+    return [];
+  }
+
+  function pointInGeoJson(lat, lng, geojson) {
+    return collectPolygons(geojson).some(function (rings) {
+      if (!rings.length || !pointInRing(lat, lng, rings[0])) {
+        return false;
+      }
+      // Inside the outer ring, but a hole cancels it.
+      return !rings.slice(1).some(function (hole) {
+        return pointInRing(lat, lng, hole);
+      });
+    });
+  }
+
+  const EARTH_RADIUS_M = 6371000;
+
+  function haversineMetres(lat1, lng1, lat2, lng2) {
+    const toRad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * toRad;
+    const dLng = (lng2 - lng1) * toRad;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+
+  // Straight-line distance, so it is always described as such rather
+  // than implying a walking or driving route.
+  function formatDistance(metres) {
+    if (metres < 950) {
+      return Math.round(metres / 10) * 10 + " m away";
+    }
+    return (metres / 1000).toFixed(1) + " km away";
+  }
+
+  // Every station in the given voting districts, as flat records.
+  function collectStationRecords(vdList) {
+    const records = [];
+    (vdList || []).forEach(function (vd) {
+      (vd.VotingStation || []).forEach(function (station) {
+        const lat = parseFloat(station.Latitude);
+        const lng = parseFloat(station.Longitude);
+        if (!isFinite(lat) || !isFinite(lng)) {
+          return;
+        }
+        records.push({
+          name: station.Name || "Voting station",
+          address: formatStationAddress(station),
+          lat: lat,
+          lng: lng,
+          vdNumber: vd.VDNumber,
+        });
+      });
+    });
+    return records;
+  }
+
+  function nearestStationRecord(lat, lng, records) {
+    let best = null;
+    records.forEach(function (record) {
+      const distance = haversineMetres(lat, lng, record.lat, record.lng);
+      if (!best || distance < best.distance) {
+        best = { record: record, distance: distance };
+      }
+    });
+    return best;
+  }
+
+  function findVotingDistrictAt(lat, lng, vdList) {
+    let match = null;
+    (vdList || []).some(function (vd) {
+      const geometry = convertIecGeometryToGeoJSON(vd.Geometry);
+      if (geometry && pointInGeoJson(lat, lng, geometry)) {
+        match = vd;
+        return true;
+      }
+      return false;
+    });
+    return match;
+  }
+
+  function directionsUrl(lat, lng) {
+    return "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lng;
+  }
+
   /* -------------------------------------------------------------
      "Find my ward" control (top-left, under the Tools box)
      Address search plus browser geolocation, resolved to a ward by the
@@ -2120,6 +2250,7 @@
     let resultsEl = null;
     let marker = null;
     let collapsed = false;
+    const vdCacheByWard = {};
 
     function setStatus(text) {
       if (!statusEl) {
@@ -2170,21 +2301,112 @@
 
     function renderFound(wardNumber, lat, lng) {
       clearResults();
+      resultsEl.hidden = false;
+
       if (currentWardNumber === wardNumber) {
         setStatus("That location is in this ward (Ward " + wardNumber + ").");
+      } else {
+        setStatus("That location is in Ward " + wardNumber + ".");
+        const open = document.createElement("button");
+        open.type = "button";
+        open.className = "find-open";
+        open.textContent = "Open Ward " + wardNumber;
+        open.addEventListener("click", function () {
+          window.location.href =
+            "index.html?ward=" + wardNumber + "&at=" + lat.toFixed(6) + "," + lng.toFixed(6);
+        });
+        resultsEl.appendChild(open);
+      }
+
+      const votingEl = document.createElement("div");
+      votingEl.className = "find-voting";
+      resultsEl.appendChild(votingEl);
+      showVotingStation(votingEl, wardNumber, lat, lng);
+    }
+
+    function votingLine(el, text, className) {
+      const line = el.appendChild(document.createElement("div"));
+      if (className) {
+        line.className = className;
+      }
+      line.textContent = text;
+      return line;
+    }
+
+    // One request per ward, kept for the session: a visitor commonly
+    // tries several addresses in the same ward.
+    function loadVotingDistricts(wardNumber) {
+      if (!vdCacheByWard[wardNumber]) {
+        vdCacheByWard[wardNumber] = fetchVotingDistricts(wardNumber);
+      }
+      return vdCacheByWard[wardNumber];
+    }
+
+    function renderStation(el, record, distance) {
+      votingLine(el, record.name, "find-voting-name");
+      const detail = [record.address, formatDistance(distance)].filter(Boolean).join(" \u00b7 ");
+      if (detail) {
+        votingLine(el, detail, "find-voting-detail");
+      }
+      const link = el.appendChild(document.createElement("a"));
+      link.className = "find-open";
+      link.href = directionsUrl(record.lat, record.lng);
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Get directions";
+    }
+
+    // Where the visitor votes is decided by the voting district their
+    // point falls inside, so that is what's shown — with the closest
+    // station mentioned separately when it happens to be a different
+    // one, since that's the obvious next question.
+    async function showVotingStation(el, wardNumber, lat, lng) {
+      votingLine(el, "Finding your voting station\u2026", "find-voting-status");
+
+      let vdList;
+      try {
+        vdList = await loadVotingDistricts(wardNumber);
+      } catch (err) {
+        console.warn("Voting district lookup failed:", err);
+        el.textContent = "";
+        votingLine(el, "Voting district data is unavailable right now.", "find-voting-status");
         return;
       }
-      setStatus("That location is in Ward " + wardNumber + ".");
-      const open = document.createElement("button");
-      open.type = "button";
-      open.className = "find-open";
-      open.textContent = "Open Ward " + wardNumber;
-      open.addEventListener("click", function () {
-        window.location.href =
-          "index.html?ward=" + wardNumber + "&at=" + lat.toFixed(6) + "," + lng.toFixed(6);
-      });
-      resultsEl.hidden = false;
-      resultsEl.appendChild(open);
+
+      const stations = collectStationRecords(vdList);
+      const nearest = nearestStationRecord(lat, lng, stations);
+      const vd = findVotingDistrictAt(lat, lng, vdList);
+      const own = vd ? nearestStationRecord(lat, lng, collectStationRecords([vd])) : null;
+
+      el.textContent = "";
+
+      if (own) {
+        votingLine(el, "Voting district " + vd.VDNumber, "find-voting-head");
+        votingLine(el, "You vote at", "find-voting-status");
+        renderStation(el, own.record, own.distance);
+        if (nearest && nearest.record.name !== own.record.name && nearest.distance < own.distance) {
+          votingLine(
+            el,
+            "The closest station is " + nearest.record.name + " (" +
+              formatDistance(nearest.distance) + "), but it serves another voting district.",
+            "find-voting-note"
+          );
+        }
+        return;
+      }
+
+      if (nearest) {
+        votingLine(el, "Closest voting station", "find-voting-head");
+        renderStation(el, nearest.record, nearest.distance);
+        votingLine(
+          el,
+          "This point didn't fall inside a mapped voting district, so this is the nearest station rather than necessarily yours.",
+          "find-voting-note"
+        );
+        return;
+      }
+
+      votingLine(el, "No voting station is listed for this ward.", "find-voting-status");
     }
 
     async function resolvePoint(lat, lng, label) {
