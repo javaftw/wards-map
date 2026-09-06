@@ -3708,11 +3708,12 @@
       value: insightDiversity,
       format: function (v) { return (Math.round(v * 100) / 100).toString(); },
     },
+    // --- Politics ---
     // The one categorical metric: its "value" is a party code, not a
     // number, so it is shaded from js/party-colour.json and gets its
     // own discrete key instead of a ramp (see applyCategorical).
     {
-      key: "party", group: "Population & space", label: "Political party", type: "categorical",
+      key: "party", group: "Politics", label: "Political party", type: "categorical",
       value: function (w) { return w.party || null; },
       format: function (v) { return String(v); },
     },
