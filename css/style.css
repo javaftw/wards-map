@@ -629,6 +629,13 @@ a {
   border-color: #fff;
 }
 
+/* The scheme/classification rows are `display: flex`, which outranks
+   the browser's [hidden] rule — so hide them explicitly when the
+   categorical (political party) metric switches them off. */
+.insights-control [hidden] {
+  display: none !important;
+}
+
 /* When a choropleth metric is active, hide the voting-station markers
    so they don't clutter the shaded wards. */
 .insights-choropleth-active .station-marker-icon {

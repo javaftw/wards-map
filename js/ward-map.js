@@ -111,6 +111,7 @@
       councillors: "js/councillors.json",
       demographics: "js/demographics.json",
       areas: "js/ward-areas.json",
+      partyColours: "js/party-colour.json",
     },
 
     icons: {
@@ -465,10 +466,25 @@
       console.warn("Could not load ward-areas.json:", err);
       return { areas: [] };
     });
+    const partyColoursPayload = await fetchJson(CONFIG.dataUrls.partyColours).catch(function (err) {
+      console.warn("Could not load party-colour.json:", err);
+      return [];
+    });
 
     const councillorsByWardNo = {};
     (councillorsPayload.councillors || []).forEach(function (c) {
       councillorsByWardNo[String(c.wardid)] = c;
+    });
+
+    // Party colours for the political-party choropleth, keyed on the
+    // upper-cased party code exactly as councillors.json spells it
+    // ("DA", "ANC", "PA", ...). A party with no entry falls back to a
+    // neutral swatch rather than breaking the map.
+    const partyColourByCode = {};
+    (Array.isArray(partyColoursPayload) ? partyColoursPayload : []).forEach(function (p) {
+      if (p && p.party && p.colour) {
+        partyColourByCode[String(p.party).toUpperCase()] = p.colour;
+      }
     });
 
     // Precomputed ward areas (km²), keyed on wardid to match everything
@@ -505,6 +521,7 @@
       populationByWardNo: populationByWardNo,
       demographicsByWardNo: demographicsByWardNo,
       areaByWardNo: areaByWardNo,
+      partyColourByCode: partyColourByCode,
     };
   }
 
@@ -3556,6 +3573,8 @@
   const INSIGHT_FILL_OPACITY = 0.75;
   const INSIGHT_HOVER_OPACITY = 0.92;
   const INSIGHT_NODATA_COLOR = "#c9ccd1";
+  // A party that councillors.json names but party-colour.json doesn't.
+  const INSIGHT_UNKNOWN_PARTY_COLOR = "#6b7280";
 
   // Sequential ramps (light -> dark end). Viridis is perceptually
   // uniform and colour-blind friendly; Blues matches the app's navy.
@@ -3689,6 +3708,14 @@
       value: insightDiversity,
       format: function (v) { return (Math.round(v * 100) / 100).toString(); },
     },
+    // The one categorical metric: its "value" is a party code, not a
+    // number, so it is shaded from js/party-colour.json and gets its
+    // own discrete key instead of a ramp (see applyCategorical).
+    {
+      key: "party", group: "Population & space", label: "Political party", type: "categorical",
+      value: function (w) { return w.party || null; },
+      format: function (v) { return String(v); },
+    },
     // --- Economy ---
     {
       key: "unemployment", group: "Economy", label: "Unemployment", scale: "linear",
@@ -3808,7 +3835,9 @@
   // `wards`: [{ wardNumber, layer, demo, area, population }].
   // `insightState` is shared with the hover so the tooltip can show the
   // active metric's value and restore the right fill opacity.
-  function createWardInsightsControl(map, wards, insightState) {
+  // `partyColours`: { PARTYCODE: "#rrggbb" } from js/party-colour.json,
+  // used by the one categorical metric.
+  function createWardInsightsControl(map, wards, insightState, partyColours) {
     const metricsByKey = {};
     INSIGHT_METRICS.forEach(function (m) {
       metricsByKey[m.key] = m;
@@ -3817,6 +3846,14 @@
     let classification = "continuous"; // or "quantile"
     let activeKey = null;
     let legendWrap, legendTitle, legendBody;
+    // Scheme/classification only mean something for the numeric
+    // metrics, so they are hidden while a categorical one is active.
+    let rampControls = [];
+
+    function partyColourOf(code) {
+      const key = String(code).toUpperCase();
+      return (partyColours && partyColours[key]) || INSIGHT_UNKNOWN_PARTY_COLOR;
+    }
 
     function restoreDefault() {
       wards.forEach(function (w) {
@@ -3874,6 +3911,60 @@
       legendBody.appendChild(scale);
     }
 
+    // Categorical legend: one swatch per party actually present, with
+    // the number of wards it holds, most wards first.
+    function updateCategoricalLegend(metric, counts) {
+      if (!legendWrap) {
+        return;
+      }
+      legendWrap.hidden = false;
+      legendTitle.textContent = metric.label;
+      while (legendBody.firstChild) {
+        legendBody.removeChild(legendBody.firstChild);
+      }
+      Object.keys(counts)
+        .sort(function (a, b) {
+          return counts[b] - counts[a] || a.localeCompare(b);
+        })
+        .forEach(function (code) {
+          const row = document.createElement("div");
+          row.className = "insights-class-row";
+          const sw = document.createElement("span");
+          sw.className = "insights-class-swatch";
+          sw.style.background = code === "" ? INSIGHT_NODATA_COLOR : partyColourOf(code);
+          const txt = document.createElement("span");
+          txt.textContent =
+            (code === "" ? "No data" : code) +
+            " — " + counts[code] + (counts[code] === 1 ? " ward" : " wards");
+          row.appendChild(sw);
+          row.appendChild(txt);
+          legendBody.appendChild(row);
+        });
+    }
+
+    // Discrete shading: each ward takes its party's own colour. No
+    // range, no ramp, no classification — hence a separate path.
+    function applyCategorical(metric) {
+      const valueByWard = {};
+      const counts = {};
+      wards.forEach(function (w) {
+        const v = metric.value(w);
+        const code = v == null || v === "" ? null : String(v);
+        valueByWard[w.wardNumber] = code;
+        const bucket = code == null ? "" : code;
+        counts[bucket] = (counts[bucket] || 0) + 1;
+        w.layer.setStyle({
+          fillColor: code == null ? INSIGHT_NODATA_COLOR : partyColourOf(code),
+          fillOpacity: INSIGHT_FILL_OPACITY,
+        });
+      });
+      setStationsHidden(true);
+      insightState.activeKey = activeKey;
+      insightState.metric = metric;
+      insightState.valueByWard = valueByWard;
+      updateCategoricalLegend(metric, counts);
+    }
+
     // Voting-station icons clutter a shaded map, so hide them (via a
     // container class — purely visual, so it doesn't fight the Tools
     // box's Voting Stations toggle) whenever a metric is active.
@@ -3881,8 +3972,15 @@
       map.getContainer().classList.toggle("insights-choropleth-active", hidden);
     }
 
+    function setRampControlsVisible(visible) {
+      rampControls.forEach(function (el) {
+        el.hidden = !visible;
+      });
+    }
+
     function apply() {
       if (!activeKey) {
+        setRampControlsVisible(true);
         restoreDefault();
         setStationsHidden(false);
         insightState.activeKey = null;
@@ -3894,6 +3992,11 @@
         return;
       }
       const metric = metricsByKey[activeKey];
+      setRampControlsVisible(metric.type !== "categorical");
+      if (metric.type === "categorical") {
+        applyCategorical(metric);
+        return;
+      }
       const valueByWard = {};
       const values = [];
       wards.forEach(function (w) {
@@ -4023,6 +4126,7 @@
         classRow.appendChild(btn);
       });
       body.appendChild(classRow);
+      rampControls = [schemeHead, schemeRow, classHead, classRow];
 
       const metricList = document.createElement("div");
       metricList.className = "insights-metrics";
@@ -4245,7 +4349,7 @@
     const refPromise = fetchReferenceData();
 
     let mdbFailed = false;
-    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {} };
+    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {}, partyColourByCode: {} };
     try {
       refData = await refPromise;
     } catch (err) {
@@ -4425,7 +4529,7 @@
     const refPromise = fetchReferenceData();
 
     let mdbFailed = false;
-    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {} };
+    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {}, partyColourByCode: {} };
     try {
       refData = await refPromise;
     } catch (err) {
@@ -4516,9 +4620,11 @@
       const insightWards = wardEntries.map(function (entry) {
         const de = refData.demographicsByWardNo[entry.wardNo];
         const pop = refData.populationByWardNo[entry.wardNo];
+        const cllr = refData.councillorsByWardNo[entry.wardNo];
         return {
           wardNumber: entry.wardNumber,
           layer: entry.layer,
+          party: cllr && cllr.party ? cllr.party : null,
           demo: de && de.demographics ? de.demographics : null,
           area: refData.areaByWardNo[entry.wardNo],
           population: de && typeof de.population === "number"
@@ -4526,7 +4632,7 @@
             : pop && typeof pop.total === "number" ? pop.total : null,
         };
       });
-      createWardInsightsControl(map, insightWards, insightState).addTo(map);
+      createWardInsightsControl(map, insightWards, insightState, refData.partyColourByCode).addTo(map);
 
       const wardLabelController = createLabelController(map, wardEntries);
       wardEntries.forEach(function (entry, index) {
