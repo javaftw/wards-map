@@ -1340,7 +1340,7 @@
         scale: 2,
         onclone: function (clonedDoc) {
           clonedDoc
-            .querySelectorAll(".tools-control, .find-control, .legend-control, .demographics-control, .data-attribution")
+            .querySelectorAll(".tools-control, .find-control, .insights-control, .legend-control, .demographics-control, .data-attribution")
             .forEach(function (el) {
               el.style.display = "none";
             });
