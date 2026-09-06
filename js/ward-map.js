@@ -1767,7 +1767,14 @@
     mapImg.className = "pdf-map-img";
     mapImg.src = mapDataUrl;
     mapArea.appendChild(mapImg);
-    mapArea.appendChild(buildPdfMapLegend(context.includeVd));
+    // With a choropleth active the ward/VD/station style key says
+    // nothing about what the colours mean, so the insights key takes
+    // its place (same bottom-right slot) rather than sitting alongside.
+    mapArea.appendChild(
+      context.insightKey
+        ? buildPdfInsightKey(context.insightKey)
+        : buildPdfMapLegend(context.includeVd)
+    );
     mapArea.appendChild(
       buildPdfMapAttribution(!!(context.demoSections && context.demoSections.length))
     );
@@ -1849,6 +1856,82 @@
       swatchBorderColor: "#ffffff",
       swatchFillColor: CONFIG.styles.station.color,
       textColor: "#000000",
+    });
+    return box;
+  }
+
+  // Key for an active Ward Insights choropleth, in the PDF map's
+  // bottom-right corner, in place of the style key. Mirrors what the
+  // on-screen Insights legend shows — a gradient bar with min/max
+  // labels for a continuous metric, or one swatch per class/party for
+  // a discrete one — since the panel itself is hidden from the capture.
+  function buildPdfInsightKey(key) {
+    const box = setStyles(document.createElement("div"), {
+      position: "absolute",
+      right: "14px",
+      bottom: "34px",
+      background: "#ffffff",
+      border: "2px solid #000000",
+      borderRadius: "3px",
+      padding: "8px 12px",
+      fontSize: "15px",
+      lineHeight: "1.3",
+      color: "#000000",
+      maxWidth: "260px",
+    });
+    // Group as the heading ("Population groups"), metric as the
+    // subheading ("White") — the label alone is ambiguous on its own.
+    setStyles(box.appendChild(document.createElement("div")), {
+      fontWeight: "700",
+      textTransform: "uppercase",
+      letterSpacing: "0.03em",
+      fontSize: "12px",
+      color: "#971a32",
+    }).textContent = key.title || "";
+    setStyles(box.appendChild(document.createElement("div")), {
+      fontWeight: "700",
+      marginBottom: "5px",
+    }).textContent = key.subtitle || "";
+
+    if (key.kind === "gradient") {
+      setStyles(box.appendChild(document.createElement("div")), {
+        height: "12px",
+        width: "180px",
+        border: "1px solid #000000",
+        background: "linear-gradient(to right, " + key.stops.join(", ") + ")",
+      });
+      const scale = setStyles(box.appendChild(document.createElement("div")), {
+        display: "flex",
+        justifyContent: "space-between",
+        width: "180px",
+        fontWeight: "700",
+        fontSize: "13px",
+        marginTop: "2px",
+      });
+      scale.appendChild(document.createElement("span")).textContent = key.minLabel;
+      scale.appendChild(document.createElement("span")).textContent = key.maxLabel;
+      return box;
+    }
+
+    (key.rows || []).forEach(function (entry) {
+      const row = setStyles(document.createElement("div"), {
+        display: "flex",
+        alignItems: "center",
+        fontSize: "13px",
+        padding: "1px 0",
+      });
+      // Swatch spacing via margin, not flex `gap` — html2canvas doesn't
+      // honour gap reliably.
+      setStyles(row.appendChild(document.createElement("span")), {
+        width: "14px",
+        height: "12px",
+        flexShrink: "0",
+        marginRight: "7px",
+        border: "1px solid #000000",
+        background: entry.color,
+      });
+      row.appendChild(document.createElement("span")).textContent = entry.label;
+      box.appendChild(row);
     });
     return box;
   }
@@ -3856,6 +3939,9 @@
     let classification = "continuous"; // or "quantile"
     let activeKey = null;
     let legendWrap, legendTitle, legendBody;
+    // Structured mirror of whatever the legend currently shows, so the
+    // PDF export can redraw the same key on the printed page.
+    let pdfKey = null;
     // Scheme/classification only mean something for the numeric
     // metrics, so they are hidden while a categorical one is active.
     let rampControls = [];
@@ -3888,6 +3974,7 @@
       }
 
       if (quantile) {
+        pdfKey = { title: metric.group, subtitle: metric.label, kind: "classes", rows: [] };
         const k = INSIGHT_QUANTILE_CLASSES;
         const bounds = [min].concat(quantile.breaks, [max]); // k+1 edges
         for (let i = k - 1; i >= 0; i--) {
@@ -3899,6 +3986,7 @@
           sw.style.background = insightRampColor(stops, k > 1 ? i / (k - 1) : 0.5);
           const txt = document.createElement("span");
           txt.textContent = metric.format(bounds[i]) + " – " + metric.format(bounds[i + 1]);
+          pdfKey.rows.push({ color: sw.style.background, label: txt.textContent });
           row.appendChild(sw);
           row.appendChild(txt);
           legendBody.appendChild(row);
@@ -3906,6 +3994,14 @@
         return;
       }
 
+      pdfKey = {
+        title: metric.group,
+        subtitle: metric.label,
+        kind: "gradient",
+        stops: stops.slice(),
+        minLabel: metric.format(min),
+        maxLabel: metric.format(max),
+      };
       const grad = document.createElement("div");
       grad.className = "insights-gradient";
       grad.style.background = "linear-gradient(to right, " + stops.join(", ") + ")";
@@ -3932,6 +4028,7 @@
       while (legendBody.firstChild) {
         legendBody.removeChild(legendBody.firstChild);
       }
+      pdfKey = { title: metric.group, subtitle: metric.label, kind: "classes", rows: [] };
       Object.keys(counts)
         .sort(function (a, b) {
           return counts[b] - counts[a] || a.localeCompare(b);
@@ -3946,6 +4043,7 @@
           txt.textContent =
             (code === "" ? "No data" : code) +
             " — " + counts[code] + (counts[code] === 1 ? " ward" : " wards");
+          pdfKey.rows.push({ color: sw.style.background, label: txt.textContent });
           row.appendChild(sw);
           row.appendChild(txt);
           legendBody.appendChild(row);
@@ -3996,6 +4094,7 @@
         insightState.activeKey = null;
         insightState.metric = null;
         insightState.valueByWard = {};
+        pdfKey = null;
         if (legendWrap) {
           legendWrap.hidden = true;
         }
@@ -4186,6 +4285,12 @@
 
       containerEl.appendChild(body);
       return containerEl;
+    };
+
+    // What the PDF export needs to reprint the active key, or null when
+    // no metric is shading the map.
+    control.getPdfKey = function () {
+      return activeKey ? pdfKey : null;
     };
 
     return control;
@@ -4621,12 +4726,16 @@
           councillorText: "",
           demoSections: null,
           includeVd: false,
+          // The Insights panel is hidden from the capture, so its key
+          // is redrawn on the page whenever a metric is shading wards.
+          insightKey: insightsControl ? insightsControl.getPdfKey() : null,
         };
       });
 
       // Ward Insights choropleth (top-right). Shared state lets the
       // hover tooltip show the active metric and keep the shading.
       const insightState = { activeKey: null, metric: null, valueByWard: {} };
+      let insightsControl = null;
       const insightWards = wardEntries.map(function (entry) {
         const de = refData.demographicsByWardNo[entry.wardNo];
         const pop = refData.populationByWardNo[entry.wardNo];
@@ -4642,7 +4751,8 @@
             : pop && typeof pop.total === "number" ? pop.total : null,
         };
       });
-      createWardInsightsControl(map, insightWards, insightState, refData.partyColourByCode).addTo(map);
+      insightsControl = createWardInsightsControl(map, insightWards, insightState, refData.partyColourByCode);
+      insightsControl.addTo(map);
 
       const wardLabelController = createLabelController(map, wardEntries);
       wardEntries.forEach(function (entry, index) {

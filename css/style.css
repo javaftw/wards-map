@@ -808,8 +808,11 @@ a {
   display: none;
 }
 
+/* The rows carry their own horizontal padding so their hover pill can
+   extend past the text; the list padding is reduced by the same amount
+   so the icons stay aligned with the panels below. */
 .tools-actions {
-  padding: 0.4rem 0.8rem 0.15rem;
+  padding: 0.4rem 0.45rem 0.15rem;
 }
 
 .tools-action-row {
@@ -817,16 +820,40 @@ a {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.22rem 0;
+  padding: 0.22rem 0.35rem;
   margin: 0;
   background: none;
   border: none;
+  border-radius: 6px;
   color: #fff;
   font-size: 0.95rem;
   font-weight: 600;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+/* Mouseover / keyboard highlight for the action rows (Zoom in, Zoom
+   out, Zoom to area, Recenter, Download PDF). A lighter version of the
+   armed .tools-action-active pill, so an armed tool still reads as the
+   stronger state. The submenu rows highlight from the wrapper too, so
+   the row stays lit while the pointer is over its open flyout. */
+.tools-action-row:hover,
+.tools-action-row:focus-visible,
+.tools-action-wrap:hover > .tools-action-row,
+.tools-submenu-open > .tools-action-row {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.tools-action-row:active {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+/* Nothing to highlight while an action is running or disabled. */
+.tools-action-row:disabled:hover,
+.tools-action-busy:hover {
+  background: none;
 }
 
 /* ---------- "Find my ward" control (top-left, under Tools) ----------
