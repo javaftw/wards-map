@@ -754,6 +754,15 @@
     });
   }
 
+  // "Jane Doe (DA)" — the party code is shown wherever the councillor
+  // is named in single-ward mode (legend and PDF header).
+  function councillorNameWithParty(councillor) {
+    if (!councillor) {
+      return "";
+    }
+    return councillor.name + (councillor.party ? " (" + councillor.party + ")" : "");
+  }
+
   function buildSingleWardLegendContent(container, wardNumber, councillor) {
     // Population is intentionally omitted here — the single-ward
     // demographics panel already shows it (absolute + share).
@@ -761,7 +770,7 @@
 
     const subheaderLines = [];
     if (councillor) {
-      subheaderLines.push(councillor.name);
+      subheaderLines.push(councillorNameWithParty(councillor));
       if (councillor.phone) {
         subheaderLines.push(councillor.phone);
       }
@@ -1331,7 +1340,7 @@
         scale: 2,
         onclone: function (clonedDoc) {
           clonedDoc
-            .querySelectorAll(".tools-control, .legend-control, .demographics-control, .data-attribution")
+            .querySelectorAll(".tools-control, .find-control, .legend-control, .demographics-control, .data-attribution")
             .forEach(function (el) {
               el.style.display = "none";
             });
@@ -1793,9 +1802,9 @@
     if (hasDemo) {
       lines.push("Demographics: Stellenbosch Municipality");
     }
-    lines.push(
-      creditPrefix() + " \u00b7 " + CONFIG.credit.licence + " \u00b7 " + CONFIG.credit.sourceLabel
-    );
+    // Author + licence only: the source link stays on the live page
+    // (the data-attribution control), not on the printed sheet.
+    lines.push(creditPrefix() + " \u00b7 " + CONFIG.credit.licence);
     lines.forEach(function (text) {
       box.appendChild(document.createElement("div")).textContent = text;
     });
@@ -4407,7 +4416,7 @@
       // PDF export content for this ward (header + demographics column).
       toolsControl.setPdfContext(function () {
         const councillorText = councillor
-          ? councillor.name + (councillor.phone ? "  ·  " + councillor.phone : "")
+          ? councillorNameWithParty(councillor) + (councillor.phone ? "  ·  " + councillor.phone : "")
           : "";
         const demoSections = demoEntry && demoEntry.demographics
           ? buildDemographicSections(demoEntry.demographics, {
