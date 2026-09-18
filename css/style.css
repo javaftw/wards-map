@@ -511,6 +511,13 @@ a {
   border: 2px solid;
 }
 
+/* Icon-based key row (see appendLegendRow's shape: "icon"): the
+   layer's own marker artwork in place of a colour swatch, sized to
+   the same 16px box so every row's text stays aligned. */
+.legend-swatch-icon {
+  object-fit: contain;
+}
+
 /* ---------- Data-source credits (bottom-left) ----------
    Compact box crediting the boundary/voting/demographics data sources,
    opposite Leaflet's OSM tile attribution. */

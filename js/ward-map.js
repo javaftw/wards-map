@@ -112,6 +112,7 @@
       demographics: "js/demographics.json",
       areas: "js/ward-areas.json",
       partyColours: "js/party-colour.json",
+      wardOffices: "js/stellenbosch_ward_offices.json",
     },
 
     icons: {
@@ -121,6 +122,7 @@
       recenter: "img/recenter.svg",
       downloadPdf: "img/generate_pdf.svg",
       allWards: "img/all_wards.svg",
+      wardOffice: "img/ward_office_icon.svg",
     },
 
     logos: {
@@ -131,6 +133,11 @@
       ward: { color: "#002157" },
       vd: { color: "#971a32" },
       station: { color: "#971a32" },
+      // Ward offices are drawn as an icon marker, not a coloured
+      // shape, so this colour only labels the legend row — navy, so it
+      // reads as part of the ward family rather than the voting
+      // (maroon) one, and matches the icon's own navy.
+      wardOffice: { color: "#002157" },
       weight: 3,
       fillOpacity: 0.25,
       hoverFillOpacity: 0.55,
@@ -470,6 +477,10 @@
       console.warn("Could not load party-colour.json:", err);
       return [];
     });
+    const wardOfficesPayload = await fetchJson(CONFIG.dataUrls.wardOffices).catch(function (err) {
+      console.warn("Could not load stellenbosch_ward_offices.json:", err);
+      return { ward_offices: [] };
+    });
 
     const councillorsByWardNo = {};
     (councillorsPayload.councillors || []).forEach(function (c) {
@@ -516,9 +527,34 @@
       }
     });
 
+    // Ward offices are the one reference file keyed by the plain ward
+    // *number* rather than by WardID — its own "ward" field is the
+    // integer 1..23 — so it is keyed that way here too, and callers
+    // look it up with the ward number they already hold.
+    const officeByWardNumber = {};
+    (wardOfficesPayload.ward_offices || []).forEach(function (office) {
+      if (!office || office.ward == null || !office.gps) {
+        return;
+      }
+      const lat = parseFloat(office.gps.lat);
+      const lng = parseFloat(office.gps.lon);
+      if (!isFinite(lat) || !isFinite(lng)) {
+        return;
+      }
+      officeByWardNumber[String(office.ward)] = {
+        wardNumber: Number(office.ward),
+        name: office.office_name || "Ward office",
+        address: office.address || "",
+        phone: office.office_phone || "",
+        lat: lat,
+        lng: lng,
+      };
+    });
+
     return {
       councillorsByWardNo: councillorsByWardNo,
       populationByWardNo: populationByWardNo,
+      officeByWardNumber: officeByWardNumber,
       demographicsByWardNo: demographicsByWardNo,
       areaByWardNo: areaByWardNo,
       partyColourByCode: partyColourByCode,
@@ -709,10 +745,21 @@
     const row = document.createElement("div");
     row.className = "legend-row";
 
-    const swatch = document.createElement("span");
-    swatch.className = "legend-swatch " + (options.shape === "circle" ? "legend-swatch-circle" : "legend-swatch-square");
-    swatch.style.borderColor = options.swatchBorderColor;
-    swatch.style.backgroundColor = options.swatchFillColor;
+    // shape "icon" swaps the colour swatch for the layer's own marker
+    // artwork (options.iconSrc), so an icon-based layer reads in the
+    // key exactly as it does on the map.
+    let swatch;
+    if (options.shape === "icon") {
+      swatch = document.createElement("img");
+      swatch.className = "legend-swatch legend-swatch-icon";
+      swatch.src = options.iconSrc;
+      swatch.alt = "";
+    } else {
+      swatch = document.createElement("span");
+      swatch.className = "legend-swatch " + (options.shape === "circle" ? "legend-swatch-circle" : "legend-swatch-square");
+      swatch.style.borderColor = options.swatchBorderColor;
+      swatch.style.backgroundColor = options.swatchFillColor;
+    }
     row.appendChild(swatch);
 
     const text = document.createElement("span");
@@ -723,7 +770,7 @@
     container.appendChild(row);
   }
 
-  function appendStyleLegendRows(container, includeVd) {
+  function appendStyleLegendRows(container, includeVd, includeWardOffice) {
     appendLegendRow(container, "Ward boundary", {
       shape: "square",
       swatchBorderColor: CONFIG.styles.ward.color,
@@ -744,13 +791,20 @@
       swatchFillColor: CONFIG.styles.station.color,
       textColor: CONFIG.styles.station.color,
     });
+    if (includeWardOffice) {
+      appendLegendRow(container, "Ward Office", {
+        shape: "icon",
+        iconSrc: CONFIG.icons.wardOffice,
+        textColor: CONFIG.styles.wardOffice.color,
+      });
+    }
   }
 
-  function buildAllWardsLegendContent(container, totalPopulation) {
+  function buildAllWardsLegendContent(container, totalPopulation, hasWardOffices) {
     buildLegendHeader(container, "All wards", formatPopulationText(totalPopulation));
     buildLegendSubheader(container, [CONFIG.municipalityName]);
     buildLegendBody(container, function (body) {
-      appendStyleLegendRows(body, false);
+      appendStyleLegendRows(body, false, hasWardOffices);
     });
   }
 
@@ -763,7 +817,7 @@
     return councillor.name + (councillor.party ? " (" + councillor.party + ")" : "");
   }
 
-  function buildSingleWardLegendContent(container, wardNumber, councillor) {
+  function buildSingleWardLegendContent(container, wardNumber, councillor, hasWardOffice) {
     // Population is intentionally omitted here — the single-ward
     // demographics panel already shows it (absolute + share).
     buildLegendHeader(container, wardLabel(wardNumber), null);
@@ -785,7 +839,7 @@
     buildLegendSubheader(container, subheaderLines);
 
     buildLegendBody(container, function (body) {
-      appendStyleLegendRows(body, true);
+      appendStyleLegendRows(body, true, hasWardOffice);
     });
   }
 
@@ -1773,7 +1827,7 @@
     mapArea.appendChild(
       context.insightKey
         ? buildPdfInsightKey(context.insightKey)
-        : buildPdfMapLegend(context.includeVd)
+        : buildPdfMapLegend(context.includeVd, context.includeWardOffice)
     );
     mapArea.appendChild(
       buildPdfMapAttribution(!!(context.demoSections && context.demoSections.length))
@@ -1824,7 +1878,7 @@
   // ward-boundary square, optional voting-district square, voting-station
   // dot. `includeVd` mirrors the on-screen legend (VDs only on the
   // single-ward map).
-  function buildPdfMapLegend(includeVd) {
+  function buildPdfMapLegend(includeVd, includeWardOffice) {
     const box = setStyles(document.createElement("div"), {
       position: "absolute",
       right: "14px",
@@ -1857,6 +1911,13 @@
       swatchFillColor: CONFIG.styles.station.color,
       textColor: "#000000",
     });
+    if (includeWardOffice) {
+      appendLegendRow(box, "Ward Office", {
+        shape: "icon",
+        iconSrc: CONFIG.icons.wardOffice,
+        textColor: "#000000",
+      });
+    }
     return box;
   }
 
@@ -3082,6 +3143,12 @@
     const stationsPane = map.createPane("stationsPane");
     stationsPane.style.zIndex = 450;
 
+    // Ward offices sit above the stations: there is at most one per
+    // ward and several wards share a building, so an office marker
+    // must never end up hidden under the much denser station dots.
+    const officesPane = map.createPane("officesPane");
+    officesPane.style.zIndex = 460;
+
     // The single-ward map's ward boundary is drawn over the VD
     // outlines, in its own pane above the default overlayPane the
     // ward fill and the VDs share. Its canvas covers the whole map
@@ -3189,6 +3256,76 @@
       pane: "stationsPane",
       keyboard: false,
     });
+  }
+
+  // Ward-office marker. Like the station marker it is a marker rather
+  // than a Path (see createStationMarker for why canvas paths can't be
+  // used here), but an image icon rather than a div dot — the artwork
+  // is CONFIG.icons.wardOffice. Same-origin SVG, so the PDF capture
+  // can rasterise it without a CORS re-fetch. The icon carries its own
+  // white surround, so it needs no CSS plate to read against dark
+  // satellite imagery.
+  function createWardOfficeMarker(office) {
+    return L.marker([office.lat, office.lng], {
+      icon: L.icon({
+        iconUrl: CONFIG.icons.wardOffice,
+        className: "ward-office-marker-icon",
+        iconSize: [30, 29],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -14],
+      }),
+      pane: "officesPane",
+      title: office.name,
+      keyboard: false,
+    });
+  }
+
+  function buildWardOfficePopupContent(office) {
+    const container = document.createElement("div");
+    container.className = "station-popup ward-office-popup";
+
+    const name = document.createElement("strong");
+    name.textContent = office.name;
+    container.appendChild(name);
+
+    const wardLine = document.createElement("div");
+    wardLine.textContent = wardLabel(office.wardNumber) + " office";
+    container.appendChild(wardLine);
+
+    if (office.address) {
+      const address = document.createElement("div");
+      address.textContent = office.address;
+      container.appendChild(address);
+    }
+
+    if (office.phone) {
+      const phone = document.createElement("div");
+      const link = document.createElement("a");
+      link.href = "tel:" + office.phone.replace(/\s+/g, "");
+      link.textContent = office.phone;
+      phone.appendChild(link);
+      container.appendChild(phone);
+    }
+
+    return container;
+  }
+
+  // Builds the ward-office layer for the given offices and registers it
+  // as a toggleable overlay. Returns the layer group, or null when no
+  // office data loaded (the JSON is non-fatal reference data, so the
+  // layer simply doesn't appear).
+  function addWardOfficeOverlay(map, toolsControl, offices) {
+    if (!offices || offices.length === 0) {
+      return null;
+    }
+    const layerGroup = L.layerGroup().addTo(map);
+    offices.forEach(function (office) {
+      createWardOfficeMarker(office)
+        .bindPopup(buildWardOfficePopupContent(office))
+        .addTo(layerGroup);
+    });
+    toolsControl.addOverlay(layerGroup, "Ward Offices");
+    return layerGroup;
   }
 
   function wardLabel(wardNumber) {
@@ -4464,7 +4601,7 @@
     const refPromise = fetchReferenceData();
 
     let mdbFailed = false;
-    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {}, partyColourByCode: {} };
+    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {}, partyColourByCode: {}, officeByWardNumber: {} };
     try {
       refData = await refPromise;
     } catch (err) {
@@ -4501,8 +4638,14 @@
 
       const wardNo = buildWardNo(wardNumber);
       const councillor = refData.councillorsByWardNo[wardNo] || null;
+
+      // This ward's own office only — the neighbouring wards' offices
+      // aren't on this map, even when they share a building.
+      const wardOffice = refData.officeByWardNumber[String(wardNumber)] || null;
+      const officeLayerGroup = addWardOfficeOverlay(map, toolsControl, wardOffice ? [wardOffice] : []);
+
       legend.update(function (el) {
-        buildSingleWardLegendContent(el, wardNumber, councillor);
+        buildSingleWardLegendContent(el, wardNumber, councillor, !!officeLayerGroup);
       });
 
       // Top-right demographics panel (added only when there's data),
@@ -4538,6 +4681,9 @@
           councillorEmailText: councillor && councillor.email ? councillor.email : "",
           demoSections: demoSections,
           includeVd: true,
+          // Only key the office if its layer is actually switched on,
+          // so the printed key matches the printed map.
+          includeWardOffice: !!officeLayerGroup && map.hasLayer(officeLayerGroup),
         };
       });
     } catch (err) {
@@ -4644,7 +4790,7 @@
     const refPromise = fetchReferenceData();
 
     let mdbFailed = false;
-    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {}, partyColourByCode: {} };
+    let refData = { councillorsByWardNo: {}, populationByWardNo: {}, demographicsByWardNo: {}, areaByWardNo: {}, partyColourByCode: {}, officeByWardNumber: {} };
     try {
       refData = await refPromise;
     } catch (err) {
@@ -4652,9 +4798,6 @@
     }
 
     const totalPopulation = sumPopulation(refData.populationByWardNo);
-    legend.update(function (el) {
-      buildAllWardsLegendContent(el, totalPopulation);
-    });
 
     try {
       const geojson = await mdbPromise;
@@ -4714,6 +4857,22 @@
       map.fitBounds(combinedBounds, { padding: CONFIG.fitBoundsPadding });
       toolsControl.setHomeBounds(combinedBounds);
 
+      const officeLayerGroup = addWardOfficeOverlay(
+        map,
+        toolsControl,
+        Object.keys(refData.officeByWardNumber)
+          .sort(function (a, b) {
+            return Number(a) - Number(b);
+          })
+          .map(function (key) {
+            return refData.officeByWardNumber[key];
+          })
+      );
+
+      legend.update(function (el) {
+        buildAllWardsLegendContent(el, totalPopulation, !!officeLayerGroup);
+      });
+
       // No demographics on the all-wards map, so no demographics credit.
       createDataAttributionControl(false).addTo(map);
 
@@ -4726,6 +4885,7 @@
           councillorText: "",
           demoSections: null,
           includeVd: false,
+          includeWardOffice: !!officeLayerGroup && map.hasLayer(officeLayerGroup),
           // The Insights panel is hidden from the capture, so its key
           // is redrawn on the page whenever a metric is shading wards.
           insightKey: insightsControl ? insightsControl.getPdfKey() : null,

@@ -1,0 +1,183 @@
+{
+  "ward_offices": [
+    {
+      "ward": 1,
+      "office_name": "Groendal Ward 1 Office",
+      "address": "Lower Lea Smith Street, Groendal, Franschoek",
+      "gps": {"lat": -33.89085858, "lon":19.10586162},
+      "office_phone": "021 808 8112"
+    },
+    {
+      "ward": 2,
+      "office_name": "Groendal Ward 2 Office",
+      "address": "Groendal Community Hall, Stiebeuel Street, Groendal, Franschoek",
+      "gps": {"lat": -33.894763721, "lon": 19.101808303},
+      "office_phone": "021 808 8745"
+    },
+    {
+      "ward": 3,
+      "office_name": "Wemmershoek Ward 3 Office",
+      "address": "Community Hall, Prins Afrika Drive, Wemmershoek",
+      "gps": {"lat":-33.8714260, "lon":19.03993710},
+      "office_phone": "021 808 8186"
+    },
+    {
+      "ward": 4,
+      "office_name": "Pniel Ward 4 Office",
+      "address": "Pniel Community Center, Helshoogte Road, Pniel",
+      "gps": {"lat":-33.89338398, "lon":18.958780475},
+      "office_phone": "021 808 8019"
+    },
+    {
+      "ward": 5,
+      "office_name": "Idas Valley Ward 6 Office",
+      "address": "Bloekom Avenue, Idas Valley",
+      "gps": {"lat":-33.920881578, "lon":18.887638092},
+      "office_phone": "021 808 8290"
+    },
+    {
+      "ward": 6,
+      "office_name": "Idas Valley Ward 6 Office",
+      "address": "Idasvallei Library, Sonnebloem Street",
+      "gps": {"lat":-33.92497389, "lon": 18.87832239},
+      "office_phone": "021 808 8150"
+    },
+    {
+      "ward": 7,
+      "office_name": "Mostertsdrif Ward 7 Office",
+      "address": "Municipal Building Complex, Jan Marais Park, Merriman Avenue, Stellenbosch",
+      "gps": {"lat":-33.930250884, "lon":18.877998407},
+      "office_phone": "021 808 8489"
+    },
+    {
+      "ward": 8,
+      "office_name": "PMU Building Ward Offices",
+      "address": "34 Market Street, Stellenbosch, 7600",
+      "gps": {
+        "lat": -33.93729425,
+        "lon": 18.85710741
+      },
+      "office_phone": "021 808 8104"
+    },
+    {
+      "ward": 9,
+      "office_name": "PMU Building Ward Offices",
+      "address": "34 Market Street, Stellenbosch, 7600",
+      "gps": {
+        "lat": -33.93729425,
+        "lon": 18.85710741
+      },
+      "office_phone": "021 808 8104"
+    },
+    {
+      "ward": 10,
+      "office_name": "Lapland Ward 10 Office",
+      "address": "Corner of Jan Cilliers Street and Ryneveld Street, Stellenbosch",
+      "gps": {
+        "lat": -33.927502,
+        "lon": 18.861111
+      },
+      "office_phone": "021 808 8156"
+    },
+    {
+      "ward": 11,
+      "office_name": "PMU Building Ward Offices",
+      "address": "34 Market Street, Stellenbosch, 7600",
+      "gps": {
+        "lat": -33.93729425,
+        "lon": 18.85710741
+      },
+      "office_phone": "021 808 8104"
+    },
+    {
+      "ward": 12,
+      "office_name": "Kayamandi Ward 12 Office",
+      "address": "George Blake Street, Kayamandi, Stellenbosch",
+      "gps": {"lat": -33.919095788, "lon": 18.851988108},
+      "office_phone": "021 808 8647"
+    },
+    {
+      "ward": 13,
+      "office_name": "Kayamandi Ward 13 Office",
+      "address": "George Blake Street, Kayamandi, Stellenbosch",
+      "gps": {"lat": -33.919095788, "lon": 18.851988108},
+      "office_phone": "021 808 8648"
+    },
+    {
+      "ward": 14,
+      "office_name": "Kayamandi Ward 14 Office",
+      "address": "George Blake Street, Kayamandi, Stellenbosch",
+      "gps": {"lat": -33.919095788, "lon": 18.851988108},
+      "office_phone": "021 808 8614"
+    },
+    {
+      "ward": 15,
+      "office_name": "Kayamandi Ward 15 Office",
+      "address": "George Blake Street, Kayamandi, Stellenbosch",
+      "gps": {"lat": -33.919095788, "lon": 18.851988108},
+      "office_phone": "021 808 8649"
+    },
+    {
+      "ward": 16,
+      "office_name": "Cloetesville Ward 16 Office",
+      "address": "Cloetesville Complex, Stellenbosch, 7600",
+      "gps": {"lat": -33.91121327, "lon":18.854788320},
+      "office_phone": "021 808 8931"
+    },
+    {
+      "ward": 17,
+      "office_name": "Cloetesville Ward 17 Office",
+      "address": "Cloetesville Complex, Stellenbosch, 7600",
+      "gps": {"lat": -33.91121327, "lon":18.854788320},
+      "office_phone": "021 808 8931"
+    },
+    {
+      "ward": 18,
+      "office_name": "Klapmuts Ward 18 Office",
+      "address": "Klapmuts, Stellenbosch Municipality",
+      "gps": {"lat": -33.80966982, "lon": 18.862983542},
+      "office_phone": "021 808 8243"
+    },
+    {
+      "ward": 19,
+      "office_name": "De Novo Ward 19 Office",
+      "address": "S1 De Novo, Old Paarl Rd, Kraaifontein",
+      "gps": {"lat":-33.83834584, "lon":18.78143061},
+      "office_phone": "021 808 8027"
+    },
+    {
+      "ward": 20,
+      "office_name": "Vlottenburg Ward 20 Office",
+      "address": "Vlottenburg Primary School, Vlottenburg Road",
+      "gps": {"lat":-33.95589641, "lon":18.797332587},
+      "office_phone": "021 808 8293"
+    },
+    {
+      "ward": 21,
+      "office_name": "Jamestown Ward 21 Office",
+      "address": "Corner of Nared Cresent and Pajaro Avenue, Jamestown",
+      "gps": {"lat":-33.979572318, "lon": 18.84893549},
+      "office_phone": "021 808 8350"
+    },
+    {
+      "ward": 22,
+      "office_name": "PMU Building Ward Offices",
+      "address": "34 Market Street, Stellenbosch, 7600",
+      "gps": {
+        "lat": -33.93729425,
+        "lon": 18.85710741
+      },
+      "office_phone": "021 808 8104"
+    },
+    {
+      "ward": 23,
+      "office_name": "PMU Building Ward Offices",
+      "address": "34 Market Street, Stellenbosch, 7600",
+      "gps": {
+        "lat": -33.93729425,
+        "lon": 18.85710741
+      },
+      "office_phone": "021 808 8104"
+    }
+  ]
+}
